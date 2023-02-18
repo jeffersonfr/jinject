@@ -1,0 +1,14 @@
+prefix="@CMAKE_INSTALL_PREFIX@"
+exec_prefix="${prefix}"
+libdir="${prefix}/lib"
+includedir="${prefix}/include"
+
+Name: jinject
+Description: A dependency injection helper
+URL: https://github.com/me/jeffersonfr/jinject
+Version: 0.0.1
+Requires: @PKGCONF_REQ_PUB@
+Requires.private: @PKGCONF_REQ_PRIV@
+Cflags: -I"${includedir}" 
+Libs: 
+Libs.private:
