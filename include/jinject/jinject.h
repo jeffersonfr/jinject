@@ -35,10 +35,10 @@ namespace jinject {
   concept UniquePtrConcept = std::same_as<std::unique_ptr<typename T::element_type>, T>;
 
   template <typename T>
-  concept RawTypeConcept = SharedPtrConcept<T> || UniquePtrConcept<T>;
+  concept NoSmartPtrConcept = !SharedPtrConcept<T> and !UniquePtrConcept<T>;
 
   template <typename T, typename ...Args>
-    requires (!RawTypeConcept<T>)
+    requires (NoSmartPtrConcept<T>)
   T inject(Args ...args) {
       if constexpr (!std::is_pointer_v<T>) {
           return T{std::forward<Args>(args)...};
