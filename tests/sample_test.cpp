@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include <gtest/gtest.h>
+//#include <gtest/gtest.h>
 
 using namespace jinject;
 
@@ -13,14 +13,14 @@ struct DefaultConstructor {
 };
 
 struct NoDefaultConstructor {
-    NoDefaultConstructor(int i, char const *s) {
+    NoDefaultConstructor(int i, std::string s) {
         std::cout << "NoDefaultConstructor: " << i << ", " << s << "\n";
     }
 };
 
 namespace jinject {
   template <>
-  NoDefaultConstructor inject(int i, char const *s) {
+  NoDefaultConstructor inject(int i, std::string s) {
       std::cout << "inject<custom injection>: " << i << ", " << s << "\n";
 
       return {i*i, s};

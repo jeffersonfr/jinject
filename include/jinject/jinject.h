@@ -72,7 +72,7 @@ namespace jinject {
 
       template <typename T>
       operator T () {
-          return std::apply(inject<T, Args...>, mArgs);
+          return std::apply(inject<T, typename ConvertAndFilterType<Args>::type...>, mArgs);
       }
 
       private:

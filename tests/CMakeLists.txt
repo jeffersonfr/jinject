@@ -34,3 +34,4 @@ macro(module_test)
 endmacro()
 
 module_test(sample)
+module_test(ifaces)
