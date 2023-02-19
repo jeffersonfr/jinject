@@ -28,7 +28,17 @@ namespace jinject {
       using type = std::string;
   };
 
+  template <typename T>
+  concept SharedPtrConcept = std::same_as<std::shared_ptr<typename T::element_type>, T>;
+
+  template <typename T>
+  concept UniquePtrConcept = std::same_as<std::unique_ptr<typename T::element_type>, T>;
+
+  template <typename T>
+  concept RawTypeConcept = SharedPtrConcept<T> || UniquePtrConcept<T>;
+
   template <typename T, typename ...Args>
+    requires (!RawTypeConcept<T>)
   T inject(Args ...args) {
       if constexpr (!std::is_pointer_v<T>) {
           return T{std::forward<Args>(args)...};
@@ -39,6 +49,22 @@ namespace jinject {
       }
   }
 
+  template <typename T, typename ...Args>
+    requires SharedPtrConcept<T>
+  T inject(Args ...args) {
+    using Value = typename T::element_type;
+
+    return std::make_shared<Value>(std::forward<Args>(args)...);
+  }
+
+  template <typename T, typename ...Args>
+    requires UniquePtrConcept<T>
+  T inject(Args ...args) {
+    using Value = typename T::element_type;
+
+    return std::make_unique<Value>(std::forward<Args>(args)...);
+  }
+
   template <typename ...Args>
   struct get {
       get(Args ...args): mArgs{args...} {
@@ -47,24 +73,6 @@ namespace jinject {
       template <typename T>
       operator T () {
           return std::apply(inject<T, Args...>, mArgs);
-      }
-
-      template <typename T>
-      operator std::shared_ptr<T> () {
-          T *value = std::apply(inject<T*, Args...>, mArgs);
-
-          std::shared_ptr<T> valuePtr{value};
-
-          return valuePtr;
-      }
-
-      template <typename T>
-      operator std::unique_ptr<T> () {
-          T *value = std::apply(inject<T*, Args...>, mArgs);
-
-          std::unique_ptr<T> valuePtr{value};
-
-          return valuePtr;
       }
 
       private:
