@@ -8,7 +8,7 @@ using namespace jinject;
 
 struct DefaultConstructor {
     DefaultConstructor() {
-        std::cout << "DefaultConstructor:: " << bind<DefaultConstructor>::get<std::string>("type") << "\n";
+        std::cout << "DefaultConstructor:: " << *bind<DefaultConstructor>::get<std::string>("type") << "\n";
     }
 };
 
@@ -62,7 +62,7 @@ int main() {
     bind<DefaultConstructor>::set("index", 42);
     bind<DefaultConstructor>::set("ptr", pInt);
 
-    int i = bind<DefaultConstructor>::get<int>("index");
+    int i = *bind<DefaultConstructor>::get<int>("index");
 
     sample();
     sample_ptr();

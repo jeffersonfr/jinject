@@ -5,6 +5,7 @@
 #include <memory>
 #include <unordered_map>
 #include <any>
+#include <optional>
 
 namespace jinject {
   template <typename T>
@@ -81,10 +82,16 @@ namespace jinject {
           }
 
           template <typename Value>
-          static typename ConvertAndFilterType<Value>::type get(std::string key) {
+          static std::optional<typename ConvertAndFilterType<Value>::type> get(std::string key) {
               using type = typename ConvertAndFilterType<Value>::type;
 
-              return std::any_cast<type>(mValues[key]);
+	      decltype(mValues)::const_iterator i = mValues.find(key);
+	      
+	      if (i != mValues.end()) {
+              	return std::any_cast<type>(mValues[key]);
+	      }
+
+	      return {};
           }
       
       private:
