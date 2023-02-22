@@ -81,19 +81,28 @@ namespace jinject {
 
 
   template <typename T>
-    struct dependency {
-      virtual ~dependency() {
-        if constexpr (std::is_pointer_v<T>) {
-          delete mInstance; // TODO:: cause trouble with singleton instances
-        }
+    struct dependency_base {
+      virtual ~dependency_base() {
       }
 
       T instance() {
         return mInstance;
       }
 
-      private:
+      protected:
       	T mInstance = get{};
+    };
+
+  /**
+   * Specialize this struct remove destructor method to avoid deallocate memory from singleton instances using raw pointers.
+   */
+  template <typename T>
+    struct dependency : public dependency_base<T> {
+      virtual ~dependency() {
+        if constexpr (std::is_pointer_v<T>) {
+          delete this->mInstance;
+        }
+      }
     };
 
   template <typename ...Args>
@@ -123,8 +132,16 @@ namespace jinject {
             return {};
           }
 
+      protected:
+        bind() = default;
+
       private:
         static inline std::unordered_map<std::string, std::any> mValues;
     };
 }
+
+#define singleton(clazz) \
+  template <> \
+    struct dependency<clazz> : public dependency_base<clazz> { \
+    }; \
 

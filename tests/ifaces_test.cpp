@@ -73,9 +73,7 @@ namespace jinject {
 
       return db.acquire();
     }
-}
 
-namespace jinject {
   template <>
     IQuery * inject(std::string sql) {
       std::cout << "inject<custom IQuery>\n";
