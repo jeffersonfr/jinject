@@ -93,9 +93,6 @@ namespace jinject {
       	T mInstance = get{};
     };
 
-  /**
-   * Specialize this struct remove destructor method to avoid deallocate memory from singleton instances using raw pointers.
-   */
   template <typename T>
     struct dependency : public dependency_base<T> {
       virtual ~dependency() {
