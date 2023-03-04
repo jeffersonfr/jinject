@@ -2,7 +2,7 @@
 
 This library simplify localization and instantiation of any type of classe or struct at compile time. The developers could use the automatic or customized instantiation of entities. This short tutorial will show some of the mainly functionalities of the library.
 
-1. no dependency injection
+## 1. no dependency injection
 
 In this case all instantiation are created by the developer. The developter needs to known how instantiate, configurate and manage the lifecycle of the entities. Now, what is happen if the entity is an interface ?
 
@@ -21,7 +21,7 @@ In this case all instantiation are created by the developer. The developter need
     };
 ```
 
-2. no dependency injection using interfaces
+## 2. no dependency injection using interfaces
 
 This example uses interfaces instead of concrete entities. The problem here is that the developer probably unknown the concrete implementation of the entity and the it's necessary that the concrete entity be found. Let's suppose that all these requirements are suppressed by the developers and think about testing issues. How are developers going to test these internal entities ?
 
@@ -40,7 +40,7 @@ This example uses interfaces instead of concrete entities. The problem here is t
     };
 ```
 
-3. naive dependency injection
+## 3. naive dependency injection
 
 With this naive implementation the developer already can using test facilities to observe intenal aspects of the use case (in this case). All that the use case needs is show its dependencies in form of interfaces. Ok, alright ... but, the developer still instantiating manually the interfaces and put alltogheter in the right way. Problems should occurs If one or more arguments swap positions or be removed from entitiy's constructor.
 
@@ -57,7 +57,7 @@ With this naive implementation the developer already can using test facilities t
     };
 ```
 
-4. naive dependency injection with default instantiation
+## 4. naive dependency injection with default instantiation
 
 The next use case resolve some issues related above in a straightforward way. Now, imagine a huge system with a lot of use cases and a lot of dependencies. In this scenario, some creation could be refactored and changed its behavior for this new implementation, so different parts of the system could begin to work differently even using the same "instance" of the entity. A very knowning way to fix this problem is using some kind of service to locate the entities and do its instantiation (mapping interfaces/implementations)
 
@@ -78,7 +78,7 @@ The next use case resolve some issues related above in a straightforward way. No
     };
 ```
 
-5. dependency injection with service locator
+## 5. dependency injection with service locator
 
 The use case is now using the service locator. The `get{}` will searching for a interface and try to instantiate.This will work only for non-interfaces and non-abstract entities. For unconstructable entities, the developer could specialize the construction of the entity.
 
@@ -103,7 +103,7 @@ The use case is now using the service locator. The `get{}` will searching for a 
     };
 ```
 
-6. dependency injection with custom service locator
+## 6. dependency injection with custom service locator
 
 This test uses a virtual entity and a custom service locator. some code was written to enable the instantiation, but this code is unique for all parts of the code with a well defined construction that is transparent for all developers. Now, could the developers specifying different instantiations to a same interface ?
 
@@ -152,7 +152,7 @@ This test uses a virtual entity and a custom service locator. some code was writ
     };
 ```
 
-7. dependency injection with custom instantiation
+## 7. dependency injection with custom instantiation
 
 A custom injection could receive parameters during the instantiation process. Then, a developer could create different behaviors from different parameters. So now, we have a entity using dependency injection, however the developer must change its construction for this. Is there any way to injection of dependencies without change the interface of a entity ?
 
@@ -210,7 +210,7 @@ A custom injection could receive parameters during the instantiation process. Th
     };
 ```
 
-8. dependency injection using inheritance
+## 8. dependency injection using inheritance
 
 Using `jinject::injection<Interface...>` the developers could inject any dependency, in any order without change the interface of the entity. Using this struct the developers could to change the dependencies and change the behavior of entity at compile time, in addition to not having to take care of the lifecycle of the instances.
 
