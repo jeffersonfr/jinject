@@ -229,8 +229,52 @@ This example shows how to implement dependency injection using inheritance. With
         UseCase() {
             ...
             
-            auto *bar = dependency<IBar*>::instance();
-            auto *foo = dependency<IFoo*>::instance();
+            auto *bar = inject<IBar*>();
+            auto *foo = inject<IFoo*>();
+        }
+    };
+```
+
+## 9. unique dependency instance
+
+In some cases, we need a unique instantiation of a dependency the could be used in all project. To do that we use the single statement wherever be needed. When all instances were "destructed" the raw instance will be free.
+
+```
+    #include <jinject/jinject.h>
+
+    using jinject;
+
+    struct IFoo {
+    };
+
+    struct UseCase {
+        UseCase() {
+            ...
+            
+            std::shared_ptr<IFoo> foo = single();
+        }
+    };
+```
+
+## 9. lazy loading dependency
+
+There is another statement to load dependencies in a lazy mode. This type stores the last instance loaded. The internal instance could change to different types, so is a good pratice using different lazy objects to load different instances of different types.
+
+```
+    #include <jinject/jinject.h>
+
+    using jinject;
+
+    struct IFoo {
+    };
+
+    struct UseCase {
+        UseCase() {
+            ...
+            
+            auto foo = lazy{};
+            ...
+            std::shared_ptr<IFoo> obj = foo{};
         }
     };
 ```

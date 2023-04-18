@@ -35,10 +35,13 @@ namespace jinject {
     concept UniquePtrConcept = std::same_as<std::unique_ptr<typename T::element_type>, T>;
 
   template <typename T>
-    concept NoSmartPtrConcept = !SharedPtrConcept<T> and !UniquePtrConcept<T>;
+    concept SmartPtrConcept = SharedPtrConcept<T> or UniquePtrConcept<T>;
+
+  template <typename T>
+    concept PointerConcept = SmartPtrConcept<T> or std::is_pointer<T>::value;
 
   template <typename T, typename ...Args>
-    requires (NoSmartPtrConcept<T>)
+    requires (!SmartPtrConcept<T>)
     T inject(Args ...args) {
       if constexpr (!std::is_pointer_v<T>) {
         return T{std::forward<Args>(args)...};
@@ -65,13 +68,46 @@ namespace jinject {
       return std::make_unique<Value>(std::forward<Args>(args)...);
     }
 
+  template <typename T, typename ...Args>
+    struct bind {
+      public:
+        template <typename Value>
+          static void set(std::string key, Value value) {
+            using type = typename ConvertAndFilterType<Value>::type;
+
+            mValues[key] = static_cast<type>(value);
+          }
+
+        template <typename Value>
+          static std::optional<typename ConvertAndFilterType<Value>::type> get(std::string key) {
+            using type = typename ConvertAndFilterType<Value>::type;
+
+            decltype(mValues)::const_iterator i = mValues.find(key);
+
+            if (i != mValues.end()) {
+              return std::any_cast<type>(mValues[key]);
+            }
+
+            return {};
+          }
+
+          static void clear(std::string key) {
+            mValues.erase(key);
+          }
+      protected:
+        bind() = default;
+
+      private:
+        static inline std::unordered_map<std::string, std::any> mValues;
+    };
+
   template <typename ...Args>
     struct get {
       get(Args ...args): mArgs{args...} {
       }
 
       template <typename T>
-        operator T () {
+        operator T () const {
           return std::apply(inject<T, typename ConvertAndFilterType<Args>::type...>, mArgs);
         }
 
@@ -79,6 +115,69 @@ namespace jinject {
       	std::tuple<Args...> mArgs;
     };
 
+  template <typename ...Args>
+    struct single {
+      single(Args ...args): mArgs{args...} {
+      }
+
+      template <typename T>
+        requires (SharedPtrConcept<T>)
+        operator T () const {
+          using type = typename T::element_type;
+
+          static std::weak_ptr<type> head;
+
+          std::shared_ptr<type> previousPtr = head.lock();
+
+          if (previousPtr != nullptr) {
+            return previousPtr;
+          }
+
+          T instance = std::make_from_tuple<get<Args...>>(mArgs);
+
+          head = instance;
+
+          return instance;
+        }
+
+      private:
+      	std::tuple<Args...> mArgs;
+    };
+
+  template <typename ...Args>
+    struct lazy {
+      lazy(Args ...args): mArgs{args...} {
+      }
+
+      template <typename T>
+        requires (SharedPtrConcept<T>)
+        operator T () const {
+          using type = typename T::element_type;
+
+          std::weak_ptr<type> head;
+
+          try {
+            head = std::any_cast<std::weak_ptr<type>>(mValue);
+
+            std::shared_ptr<type> previousPtr = head.lock();
+
+            if (previousPtr != nullptr) {
+              return previousPtr;
+            }
+          } catch (std::bad_any_cast &e) {
+          }
+
+          T instance = std::make_from_tuple<get<Args...>>(mArgs);
+
+          mValue = std::weak_ptr{instance};
+
+          return instance;
+        }
+
+      private:
+      	std::tuple<Args...> mArgs;
+        mutable std::any mValue;
+    };
 
   template <typename T>
     struct dependency_base {
@@ -104,41 +203,9 @@ namespace jinject {
 
   template <typename ...Args>
     class injection : protected dependency<Args>... {
-    };
-
-  template <typename T, typename ...Args>
-    struct bind {
-      public:
-        template <typename Value>
-          static void set(std::string key, Value value) {
-            using type = typename ConvertAndFilterType<Value>::type;
-
-            mValues[key] = static_cast<type>(value);
-          }
-
-        template <typename Value>
-          static std::optional<typename ConvertAndFilterType<Value>::type> get(std::string key) {
-            using type = typename ConvertAndFilterType<Value>::type;
-
-            decltype(mValues)::const_iterator i = mValues.find(key);
-
-            if (i != mValues.end()) {
-              return std::any_cast<type>(mValues[key]);
-            }
-
-            return {};
-          }
-
-      protected:
-        bind() = default;
-
-      private:
-        static inline std::unordered_map<std::string, std::any> mValues;
+      template <typename T>
+        T inject() {
+          return dependency<T>::instance();
+        }
     };
 }
-
-#define singleton(clazz) \
-  template <> \
-    struct dependency<clazz> : public dependency_base<clazz> { \
-    }; \
-
