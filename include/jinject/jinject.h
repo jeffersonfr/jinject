@@ -115,33 +115,33 @@ namespace jinject {
       	std::tuple<Args...> mArgs;
     };
 
-  template <typename ...Args>
-    struct single {
-      single(Args ...args): mArgs{args...} {
-      }
+  template <typename T>
+    struct single_base {
+      operator T () const {
+        using type = typename T::element_type;
 
-      template <typename T>
-        requires (SharedPtrConcept<T>)
-        operator T () const {
-          using type = typename T::element_type;
+        static std::weak_ptr<type> head;
 
-          static std::weak_ptr<type> head;
+        std::shared_ptr<type> previousPtr = head.lock();
 
-          std::shared_ptr<type> previousPtr = head.lock();
-
-          if (previousPtr != nullptr) {
-            return previousPtr;
-          }
-
-          T instance = std::make_from_tuple<get<Args...>>(mArgs);
-
-          head = instance;
-
-          return instance;
+        if (previousPtr != nullptr) {
+          return previousPtr;
         }
 
-      private:
-      	std::tuple<Args...> mArgs;
+        T instance = static_cast<T>(get{});
+
+        head = instance;
+
+        return instance;
+      }
+    };
+
+  struct single {
+    template <typename T>
+      requires (SharedPtrConcept<T>)
+      operator T () const {
+        return single_base<T>{};
+      }
     };
 
   template <typename ...Args>
@@ -176,6 +176,7 @@ namespace jinject {
 
       private:
       	std::tuple<Args...> mArgs;
+
         mutable std::any mValue;
     };
 
@@ -202,7 +203,7 @@ namespace jinject {
     };
 
   template <typename ...Args>
-    class injection : protected dependency<Args>... {
+    struct injection : protected dependency<Args>... {
       template <typename T>
         T inject() {
           return dependency<T>::instance();

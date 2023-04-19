@@ -33,5 +33,5 @@ macro(module_test)
   unset(id)
 endmacro()
 
+module_test(unit)
 module_test(sample)
-module_test(ifaces)

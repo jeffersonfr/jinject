@@ -6,77 +6,92 @@
 
 using namespace jinject;
 
-struct DefaultConstructor {
-  DefaultConstructor() {
-    std::cout << "DefaultConstructor:: " << bind<DefaultConstructor>::get<std::string>("type").value_or("unknown") << "\n";
+struct IQuery {
+  virtual void dump() = 0;
+};
+
+struct IConnection {
+  virtual IQuery * query(std::string) = 0;
+};
+
+struct IDatabase {
+  virtual bool open() = 0;
+  virtual IConnection * acquire() = 0;
+};
+
+struct QueryImpl : public IQuery {
+  void dump() {
+    std::cout << "dump() called\n";
   }
 };
 
-struct NoDefaultConstructor {
-  NoDefaultConstructor(int i, std::string s) {
-    std::cout << "NoDefaultConstructor: " << i << ", " << s << "\n";
+struct ConnectionImpl : public IConnection {
+  virtual IQuery * query(std::string) {
+    return new QueryImpl{};
+  }
+};
+
+struct DatabaseImpl : public IDatabase {
+  bool open() {
+    return true;
+  }
+
+  IConnection * acquire() {
+    return new ConnectionImpl{};
+  }
+};
+
+struct MyUseCase {
+  void listUsers() {
+    IQuery *query = get{"select * from users"};
+
+    query->dump();
+
+    delete query;
+  }
+
+  void listUsersById(int id) {
+    IQuery *query = get{"select * from users where id = " + std::to_string(id)};
+
+    query->dump();
+
+    delete query;
   }
 };
 
 namespace jinject {
   template <>
-    NoDefaultConstructor inject(int i, std::string s) {
-      std::cout << "inject<custom injection>: " << i << ", " << s << "\n";
+    IConnection * inject() {
+      std::cout << "inject<custom IDatabase>\n";
 
-      return {i*i, s};
+      static DatabaseImpl db{};
+
+      if (db.open() == false) {
+        return nullptr;
+      }
+
+      return db.acquire();
+    }
+
+  template <>
+    IQuery * inject(std::string sql) {
+      std::cout << "inject<custom IQuery>\n";
+
+      IConnection *conn = get{};
+
+      IQuery *query = conn->query(sql);
+
+      delete conn;
+
+      return query;
     }
 }
 
-void sample(
-    int primitiveType = get{42},
-    DefaultConstructor defaultConstructor = get{},
-    NoDefaultConstructor noDefaultConstructor = get{42, "jeff"}) {
-  std::cout << "sample called\n";
-}
-
-void sample_ptr(
-    int *primitiveType = get{42},
-    DefaultConstructor *defaultConstructor = get{},
-    NoDefaultConstructor *noDefaultConstructor = get{42, "jeff"}) {
-  std::cout << "sample_ptr called\n";
-}
-
-void sample_shared(
-    std::shared_ptr<int> primitiveType = get{42},
-    std::shared_ptr<DefaultConstructor> defaultConstructor = get{},
-    std::shared_ptr<NoDefaultConstructor> noDefaultConstructor = get{42, "jeff"}) {
-  std::cout << "sample_shared called\n";
-}
-
-void sample_unique(
-    std::unique_ptr<int> primitiveType = get{42},
-    std::shared_ptr<DefaultConstructor> defaultConstructor = get{},
-    std::shared_ptr<NoDefaultConstructor> noDefaultConstructor = get{42, "jeff"}) {
-  std::cout << "sample_unique called\n";
-}
-
-struct injection_test : injection<DefaultConstructor> {
-  injection_test() {
-    std::cout << "injection_test called\n";
-
-    auto obj = dependency<DefaultConstructor>::instance();
-  }
-};
+// ---------------------------------- my code
 
 int main() {
-  injection_test test{};
+  MyUseCase useCase = get{};
 
-  int const * const pInt = new int{42};
-
-  bind<DefaultConstructor>::set("type", "debug");
-  bind<DefaultConstructor>::set("index", 42);
-  bind<DefaultConstructor>::set("ptr", pInt);
-
-  int i = *bind<DefaultConstructor>::get<int>("index");
-
-  sample();
-  sample_ptr();
-  sample_shared();
-  sample_unique();
+  useCase.listUsers();
 }
 
