@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <any>
 #include <optional>
+#include <iostream>
 
 namespace jinject {
   template <typename T>
@@ -148,6 +149,29 @@ namespace jinject {
     struct lazy {
       lazy(Args ...args): mArgs{args...} {
       }
+
+      template <typename T>
+        requires (std::is_pointer_v<T>)
+        operator T () const {
+          using type = std::remove_pointer_t<std::decay_t<T>>;
+
+          std::shared_ptr<type> head;
+
+          try {
+            std::shared_ptr<type> head = std::any_cast<std::shared_ptr<type>>(mValue);
+
+            if (head != nullptr) {
+              return head.get();
+            }
+          } catch (std::bad_any_cast &e) {
+          }
+
+          T instance = std::make_from_tuple<get<Args...>>(mArgs);
+
+          mValue = std::shared_ptr<type>{instance};
+          
+          return instance;
+        }
 
       template <typename T>
         requires (SharedPtrConcept<T>)

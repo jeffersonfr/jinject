@@ -235,9 +235,9 @@ This example shows how to implement dependency injection using inheritance. With
     };
 ```
 
-## 9. unique dependency instance
+## 9. single instance
 
-In some cases, we need a unique instantiation of a dependency the could be used in all project. To do that we use the single statement wherever be needed. When all instances were "destructed" the raw instance will be free.
+Certain type should have only one instanciation during the project or, at least, one instation during the shared use. For cases like that exists the type single. The lifetime of single instances is extended until all instances release the reference.
 
 ```
     #include <jinject/jinject.h>
@@ -256,9 +256,9 @@ In some cases, we need a unique instantiation of a dependency the could be used 
     };
 ```
 
-## 9. lazy loading dependency
+## 9. lazy loading
 
-There is another statement to load dependencies in a lazy mode. This type stores the last instance loaded. The internal instance could change to different types, so is a good pratice using different lazy objects to load different instances of different types.
+Types that load a lot of objects should use a lazy type to avoid heavy latency during instantiation. The lazy type will create a instance only one time, the first time called (for a new type). The lifetime of the reference will be managed by lazy object for raw pointers. For shared pointer the lifetime could be extended.
 
 ```
     #include <jinject/jinject.h>
@@ -272,10 +272,9 @@ There is another statement to load dependencies in a lazy mode. This type stores
         UseCase() {
             ...
             
-            auto foo = lazy{};
+            auto foo = lazyFoo{};
             ...
-            std::shared_ptr<IFoo> obj = foo{};
+            std::shared_ptr<IFoo> obj = lazyFoo;
         }
     };
 ```
-
