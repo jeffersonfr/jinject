@@ -32,6 +32,7 @@ enable_testing()
 
 if (TESTS)
   add_subdirectory(tests)
+  add_subdirectory(examples)
 endif()
 
 configure_file(

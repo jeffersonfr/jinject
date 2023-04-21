@@ -34,4 +34,3 @@ macro(module_test)
 endmacro()
 
 module_test(unit)
-module_test(sample)
