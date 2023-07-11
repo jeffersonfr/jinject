@@ -96,205 +96,38 @@ In this example, we use a mechanism known as a service locator. The `get{}` meth
 
     struct IBar {
     };  
-      
-    struct MyUseCase {
-        MyUseCase(IFoo *foo = get{}, IBar *bar = get{}) {
-            std::cout << "foo: " << std::addressof(foo) << ", bar: " << std::addressof(bar) << std::endl;
-      
-            delete foo;
-            delete bar;
-        }
-    };
 
-    int main() {
-        MyUseCase useCase;
-    }
+    void LoadModules() {
+        FACTORY(IFoo) {
+            return new IFoo{};
+        };
 
-```
-
-## 6. dependency injection with custom service locator
-
-Here we use the location service customization feature described in the previous example. We extended the API so that it could know what to do, for example, when an instance of an interface was requested, or then how many instances would be created and/or shared during the execution of the system.
-
-```
-    #include "jinject/jinject.h"
-
-    #include <iostream>
-
-    using namespace jinject;
-
-    struct IFoo {
-        virtual void foo() = 0;
-    };
-
-    struct IBar {
-        virtual void bar() = 0;
-    };
-
-    namespace jinject {
-        template <>
-            IFoo * inject() {
-                struct Impl : public IFoo {
-                    void foo() {
-                    }
-                };
-
-                return new Impl{};
-            }
-
-        template <>
-            IBar * inject() {
-                struct Impl : public IBar {
-                    void bar() {
-                    }
-                };
-
-                return new Impl{};
-            }
+        FACTORY(IBar) {
+            return new IBar{};
+        };
     }
 
     struct MyUseCase {
         MyUseCase(IFoo *foo = get{}, IBar *bar = get{}) {
             std::cout << "foo: " << std::addressof(foo) << ", bar: " << std::addressof(bar) << std::endl;
-
+      
             delete foo;
             delete bar;
         }
     };
 
-
     int main() {
+        LoadModules();
+
         MyUseCase useCase;
     }
-```
-
-## 7. dependency injection with custom instantiation
-
-In this example, we present a way to customize/customize the location service to handle complex issues such as entity instances with a particular set of parameters or return different instances given a different type or concept, that is, it shows a way to change the behavior of the location service from different execution contexts.
 
 ```
-    #include "jinject/jinject.h"
 
-    #include <iostream>
-
-    using namespace jinject;
-
-    struct IFoo {
-        virtual void foo() = 0;
-    };
-
-    struct IBar {
-        virtual void bar() = 0;
-    };
-
-    namespace jinject {
-        template <>
-        IFoo * inject(int id) {
-            struct Impl1 : public IFoo {
-                void foo() {
-                }
-            };
-                
-            struct Impl2 : public IFoo {
-                void foo() {
-                }
-            };
-                
-            if (id == 0) {
-                return new Impl1{};
-            }   
-
-            return new Impl2{};
-        }   
-
-        template <>
-        IBar * inject() {
-            struct Impl : public IBar {
-                void bar() {
-                }
-            };
-            
-            return new Impl{};
-        }
-    }
-
-    struct MyUseCase {
-        MyUseCase(IFoo *foo = get{1}, IBar *bar = get{}) {
-            std::cout << "foo: " << std::addressof(foo) << ", bar: " << std::addressof(bar) << std::endl;
-
-            delete foo;
-            delete bar;
-        }
-    };
-                
-    int main() {
-        MyUseCase useCase;
-    }    
-```
-
-## 8. dependency injection using inheritance
-
-This example shows how to implement dependency injection using inheritance. With this architectural model, developers would not need to change the use case interface and would still have the option of implementing dynamic dependency injection mechanisms at compile time.
-
-```
-    #include "jinject/jinject.h"
-
-    #include <iostream>
-
-    using namespace jinject;
-
-    struct IFoo {
-    };
-
-    struct IBar {
-    };
-
-    struct MyUseCase : injection<IFoo*, IBar*> {
-        MyUseCase() {
-            auto *bar = inject<IBar*>();
-            auto *foo = inject<IFoo*>();
-
-            std::cout << "foo: " << std::addressof(foo) << ", bar: " << std::addressof(bar) << std::endl;
-        }
-    };
-
-    int main() {
-        MyUseCase useCase;
-    }
-```
-
-## 9. dependency injection using single instance
+## 6. dependency injection using single instance
 
 Certain types should have only one instanciation in the project or, at least, one instation for shared use over a period of time. For cases like that there is the type single{}. The lifetime of single instances is extended until all instances release the reference.
 
-```
-    #include "jinject/jinject.h"
-
-    #include <iostream>
-
-    using namespace jinject;
-
-    struct IFoo { 
-    };
-
-    struct MyUseCase {
-        MyUseCase() {
-            std::shared_ptr<IFoo> foo = single();
-
-            std::cout << "foo: " << std::addressof(foo) << std::endl;
-        } 
-    };
-
-    int main() {
-        MyUseCase useCase;
-    }
-```
-
-## 10. dependency injection using lazy loading
-
-Types that load a lot of objects should use a lazy type to avoid heavy latency during instantiation. The lazy type will create a instance only one time, the first time called (for a new type). The lifetime of the reference will be managed by lazy object for raw pointers. For shared pointer the lifetime could be extended.
-
-```
     #include "jinject/jinject.h"
 
     #include <iostream>
@@ -304,18 +137,22 @@ Types that load a lot of objects should use a lazy type to avoid heavy latency d
     struct IFoo {
     };
 
+    void LoadModules() {
+        SINGLE(IFoo) {
+            return new IFoo{};
+        };
+    }
+
     struct MyUseCase {
-        MyUseCase() {
-            std::shared_ptr<IFoo> foo = lazyFoo;
-            
+        MyUseCase(IFoo *foo = get{}) {
             std::cout << "foo: " << std::addressof(foo) << std::endl;
         }
-        
-        private: 
-            lazy<> lazyFoo = lazy{};
     };
 
     int main() {
+        LoadModules();
+
         MyUseCase useCase;
     }
+
 ```

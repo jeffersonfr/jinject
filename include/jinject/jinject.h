@@ -6,29 +6,10 @@
 #include <unordered_map>
 #include <any>
 #include <optional>
+#include <functional>
 #include <iostream>
 
 namespace jinject {
-  template <typename T>
-    struct ConvertAndFilterType {
-      using type = T;
-    };
-
-  template <std::size_t N>
-    struct ConvertAndFilterType<char const [N]> {
-      using type = std::string;
-    };
-
-  template <>
-    struct ConvertAndFilterType<char const []> {
-      using type = std::string;
-    };
-
-  template <>
-    struct ConvertAndFilterType<char const *> {
-      using type = std::string;
-    };
-
   template <typename T>
     concept SharedPtrConcept = std::same_as<std::shared_ptr<typename T::element_type>, T>;
 
@@ -41,6 +22,10 @@ namespace jinject {
   template <typename T>
     concept PointerConcept = SmartPtrConcept<T> or std::is_pointer<T>::value;
 
+  template <typename T>
+    concept NoPointer = !PointerConcept<T>;
+    
+/*
   template <typename T, typename ...Args>
     requires (!SmartPtrConcept<T>)
     T inject(Args ...args) {
@@ -68,141 +53,133 @@ namespace jinject {
 
       return std::make_unique<Value>(std::forward<Args>(args)...);
     }
+*/
 
-  template <typename T, typename ...Args>
-    struct bind {
-      public:
-        template <typename Value>
-          static void set(std::string key, Value value) {
-            using type = typename ConvertAndFilterType<Value>::type;
+  enum instantiation_type {
+    UNKNOWN,
+    SINGLE,
+    FACTORY
+  };
 
-            mValues[key] = static_cast<type>(value);
-          }
+  template <typename T>
+  struct instantiation {
+    static inline instantiation_type type = UNKNOWN;
 
-        template <typename Value>
-          static std::optional<typename ConvertAndFilterType<Value>::type> get(std::string key) {
-            using type = typename ConvertAndFilterType<Value>::type;
-
-            decltype(mValues)::const_iterator i = mValues.find(key);
-
-            if (i != mValues.end()) {
-              return std::any_cast<type>(mValues[key]);
-            }
-
-            return {};
-          }
-
-          static void clear(std::string key) {
-            mValues.erase(key);
-          }
-      protected:
-        bind() = default;
-
-      private:
-        static inline std::unordered_map<std::string, std::any> mValues;
-    };
-
-  template <typename ...Args>
-    struct get {
-      get(Args ...args): mArgs{args...} {
+    instantiation() {
+      if (type != UNKNOWN) {
+        throw std::runtime_error("jinject::instantiation already defined");
       }
+    }
+  };
 
-      template <typename T>
-        operator T () const {
-          return std::apply(inject<T, typename ConvertAndFilterType<Args>::type...>, mArgs);
+  template <typename T>
+    struct factory: instantiation<T> {
+      factory(factory const &) = delete;
+      factory(factory &&) = delete;
+
+      template <typename ...Args>
+        factory(std::function<T()> callback): instantiation<T>() {
+          mCallback = callback;
+
+          instantiation<T>::type = FACTORY;
         }
 
+      static T get() {
+        return mCallback();
+      }
+
+      factory & operator = (std::function<T()> const &callback) {
+        mCallback = callback;
+
+        return *this;
+      }
+
       private:
-      	std::tuple<Args...> mArgs;
+        static inline std::function<T()> mCallback;
+    };
+
+#define FACTORY(T) \
+  factory<T> {[]() -> T { throw 0; }} = []() -> T 
+
+  template <typename T>
+    struct single: instantiation<T> {
+      single(single const &) = delete;
+      single(single &&) = delete;
     };
 
   template <typename T>
-    struct single_base {
-      operator T () const {
-        using type = typename T::element_type;
+    struct single<T*>: instantiation<T*> {
+      single(single const &) = delete;
+      single(single &&) = delete;
 
-        static std::weak_ptr<type> head;
+      template <typename ...Args>
+        single(std::function<T*()> callback): instantiation<T*>() {
+          mInstance = callback();
 
-        std::shared_ptr<type> previousPtr = head.lock();
-
-        if (previousPtr != nullptr) {
-          return previousPtr;
+          instantiation<T*>::type = SINGLE;
         }
 
-        T instance = static_cast<T>(get{});
-
-        head = instance;
-
-        return instance;
-      }
-    };
-
-  struct single {
-    template <typename T>
-      requires (SharedPtrConcept<T>)
-      operator T () const {
-        return single_base<T>{};
-      }
-    };
-
-  template <typename ...Args>
-    struct lazy {
-      lazy(Args ...args): mArgs{args...} {
+      static T const * const get() {
+        return mInstance;
       }
 
-      template <typename T>
-        requires (std::is_pointer_v<T>)
-        operator T () const {
-          using type = std::remove_pointer_t<std::decay_t<T>>;
+      single & operator = (std::function<T*()> const &callback) {
+        mInstance = callback();
 
-          std::shared_ptr<type> head;
-
-          try {
-            std::shared_ptr<type> head = std::any_cast<std::shared_ptr<type>>(mValue);
-
-            if (head != nullptr) {
-              return head.get();
-            }
-          } catch (std::bad_any_cast &e) {
-          }
-
-          T instance = std::make_from_tuple<get<Args...>>(mArgs);
-
-          mValue = std::shared_ptr<type>{instance};
-          
-          return instance;
-        }
-
-      template <typename T>
-        requires (SharedPtrConcept<T>)
-        operator T () const {
-          using type = typename T::element_type;
-
-          std::weak_ptr<type> head;
-
-          try {
-            head = std::any_cast<std::weak_ptr<type>>(mValue);
-
-            std::shared_ptr<type> previousPtr = head.lock();
-
-            if (previousPtr != nullptr) {
-              return previousPtr;
-            }
-          } catch (std::bad_any_cast &e) {
-          }
-
-          T instance = std::make_from_tuple<get<Args...>>(mArgs);
-
-          mValue = std::weak_ptr{instance};
-
-          return instance;
-        }
+        return *this;
+      }
 
       private:
-      	std::tuple<Args...> mArgs;
-
-        mutable std::any mValue;
+        static inline T *mInstance;
     };
+
+  template <typename T>
+    struct single<std::shared_ptr<T>>: instantiation<std::shared_ptr<T>> {
+      single(single const &) = delete;
+      single(single &&) = delete;
+
+      template <typename ...Args>
+        single(std::function<std::shared_ptr<T>()> callback): instantiation<std::shared_ptr<T>>() {
+          mInstance = callback();
+
+          instantiation<std::shared_ptr<T>>::type = SINGLE;
+        }
+
+      static std::shared_ptr<T> const get() {
+        return mInstance;
+      }
+
+      single & operator = (std::function<std::shared_ptr<T>()> const &callback) {
+        mInstance = callback();
+
+        return *this;
+      }
+
+      private:
+        static inline std::shared_ptr<T> mInstance;
+    };
+
+#define SINGLE(T) \
+  single<T> {[]() -> T { throw 0; }} = []() -> T 
+
+  struct get {
+    get() = default;
+
+    template <typename T>
+      operator T () const {
+        if (instantiation<T>::type == SINGLE) {
+          if constexpr(SharedPtrConcept<T>) {
+            return single<T>::get();
+          } else {
+            throw std::runtime_error("jinject::single instantiation must use shared smart pointer");
+          }
+        } else if (instantiation<T>::type == FACTORY) {
+          return factory<T>::get();
+        }
+
+        throw std::runtime_error("jinject::undefined instantiation");
+      }
+  };
 
   template <typename T>
     struct dependency_base {

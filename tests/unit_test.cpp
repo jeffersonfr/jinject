@@ -8,184 +8,242 @@ using namespace jinject;
 
 struct DefaultConstructor {
   DefaultConstructor() {
-    std::cout << "DefaultConstructor:: " << bind<DefaultConstructor>::get<std::string>("type").value_or("unknown") << "\n";
   }
 };
 
 struct NoDefaultConstructor {
   NoDefaultConstructor(int i, std::string s) {
-    std::cout << "NoDefaultConstructor: " << i << ", " << s << "\n";
   }
 };
 
-struct FooInstance {
-  FooInstance() {
-    std::cout << "FooInstance ctor\n";
-
-    ctor++;
+struct SingleInstantiation {
+  SingleInstantiation() {
   }
-
-  ~FooInstance() {
-    dtor++;
-  }
-
-  inline static int ctor = 0;
-  inline static int dtor = 0;
 };
 
-namespace jinject {
-  template <>
-    NoDefaultConstructor inject(int i, std::string s) {
-      std::cout << "inject<custom injection>: " << i << ", " << s << "\n";
+struct UndefinedInstantiation {
+  UndefinedInstantiation() {
+  }
+};
 
-      return {i*i, s};
+class Environment : public ::testing::Environment {
+  
+  public:
+    ~Environment() override {
+      
     }
-}
 
-TEST(InjectionSuite, PrimitiveNoPointerInjection) {
-  int value = get{42};
+    void SetUp() override {
+      LoadModules();
+    }
+
+    void TearDown() override {
+
+    }
+
+    private:
+      void LoadPrimitiveModule() {
+        FACTORY(int) {
+          return 42;
+        };
+
+        FACTORY(int*) {
+          return new int{42};
+        };
+
+        FACTORY(std::shared_ptr<int>) {
+          return std::make_shared<int>(42);
+        };
+
+        FACTORY(std::unique_ptr<int>) {
+          return std::make_unique<int>(42);
+        };
+      }
+
+      void LoadDefaultConstructorModule() {
+        FACTORY(DefaultConstructor) {
+          return DefaultConstructor{};
+        };
+
+        FACTORY(DefaultConstructor*) {
+          return new DefaultConstructor{};
+        };
+
+        FACTORY(std::shared_ptr<DefaultConstructor>) {
+          return std::make_shared<DefaultConstructor>();
+        };
+
+        FACTORY(std::unique_ptr<DefaultConstructor>) {
+          return std::make_unique<DefaultConstructor>();
+        };
+      }
+
+      void LoadNoDefaultConstructorModule() {
+        FACTORY(NoDefaultConstructor) {
+          return NoDefaultConstructor{get{}, "Hello, world !"};
+        };
+
+        FACTORY(NoDefaultConstructor*) {
+          return new NoDefaultConstructor{get{}, "Hello, world !"};
+        };
+
+        FACTORY(std::shared_ptr<NoDefaultConstructor>) {
+          return std::make_shared<NoDefaultConstructor>(get{}, "Hello, world !");
+        };
+
+        FACTORY(std::unique_ptr<NoDefaultConstructor>) {
+          return std::make_unique<NoDefaultConstructor>(get{}, "Hello, world !");
+        };
+      }
+
+      void LoadSingleInstantiation() {
+        FACTORY(SingleInstantiation*) {
+          return new SingleInstantiation{};
+        };
+
+        FACTORY(std::shared_ptr<SingleInstantiation>) {
+          return std::make_shared<SingleInstantiation>();
+        };
+      }
+
+      void LoadModules() {
+        LoadPrimitiveModule();
+        LoadDefaultConstructorModule();
+        LoadNoDefaultConstructorModule();
+        LoadSingleInstantiation();
+      }
+
+};
+
+// primitive tests
+TEST(InjectionSuite, Primitive) {
+  int value = get{};
 
   ASSERT_EQ(value, 42);
 }
 
-TEST(InjectionSuite, DefaultConstructorNoPointerInjection) {
+TEST(InjectionSuite, PointerPrimitive) {
+  int *value = get{};
+
+  ASSERT_EQ(*value, 42);
+}
+
+TEST(InjectionSuite, SharedPrimitive) {
+  std::shared_ptr<int> value = get{};
+
+  ASSERT_EQ(*value, 42);
+}
+
+TEST(InjectionSuite, UniquePrimitive) {
+  std::unique_ptr<int> value = get{};
+
+  ASSERT_EQ(*value, 42);
+}
+
+// default constructor
+TEST(InjectionSuite, DefaultConstructor) {
   DefaultConstructor value = get{};
+
+  SUCCEED();
 }
 
-TEST(InjectionSuite, NoDefaultConstructorNoPointerInjection) {
-  NoDefaultConstructor value = get{42, "hello, world"};
-}
-
-TEST(InjectionSuite, PrimitivePointerInjection) {
-  int *value = get{42};
-
-  ASSERT_NE(value, nullptr);
-}
-
-TEST(InjectionSuite, DefaultConstructorPointerInjection) {
+TEST(InjectionSuite, PointerDefaultConstructor) {
   DefaultConstructor *value = get{};
 
-  ASSERT_NE(value, nullptr);
+  SUCCEED();
 }
 
-TEST(InjectionSuite, NoDefaultConstructorPointerInjection) {
-  NoDefaultConstructor *value = get{42, "hello, world"};
-
-  ASSERT_NE(value, nullptr);
-}
-
-TEST(InjectionSuite, PrimitiveSharedPointerInjection) {
-  std::shared_ptr<int> value = get{42};
-
-  ASSERT_NE(value, nullptr);
-}
-
-TEST(InjectionSuite, DefaultConstructorSharedPointerInjection) {
+TEST(InjectionSuite, SharedDefaultConstructor) {
   std::shared_ptr<DefaultConstructor> value = get{};
 
-  ASSERT_NE(value, nullptr);
+  SUCCEED();
 }
 
-TEST(InjectionSuite, NoDefaultConstructorSharedPointerInjection) {
-  std::shared_ptr<NoDefaultConstructor> value = get{42, "hello, world"};
-
-  ASSERT_NE(value, nullptr);
-}
-
-TEST(InjectionSuite, PrimitiveUniquePointerInjection) {
-  std::unique_ptr<int> value = get{42};
-
-  ASSERT_NE(value, nullptr);
-}
-
-TEST(InjectionSuite, DefaultConstructorUniquePointerInjection) {
+TEST(InjectionSuite, UniqueDefaultConstructor) {
   std::unique_ptr<DefaultConstructor> value = get{};
 
-  ASSERT_NE(value, nullptr);
+  SUCCEED();
 }
 
-TEST(InjectionSuite, NoDefaultConstructorUniquePointerInjection) {
-  std::unique_ptr<NoDefaultConstructor> value = get{42, "hello, world"};
+// no NoDefault constructor
+TEST(InjectionSuite, NoDefaultConstructor) {
+  NoDefaultConstructor value = get{};
 
-  ASSERT_NE(value, nullptr);
+  SUCCEED();
 }
 
-TEST(InjectionSuite, FooInstanceSharedPointerInjection) {
-  FooInstance::ctor = 0;
-  FooInstance::dtor = 0;
-  
-  {
-    std::shared_ptr<FooInstance> value1 = single{};
-    std::shared_ptr<FooInstance> value2 = single{};
-    std::shared_ptr<FooInstance> value3 = single{};
-    std::shared_ptr<FooInstance> value4 = single{};
-    std::shared_ptr<FooInstance> value5 = single{};
+TEST(InjectionSuite, PointerNoDefaultConstructor) {
+  NoDefaultConstructor *value = get{};
 
-    ASSERT_NE(value1, nullptr);
-    ASSERT_NE(value2, nullptr);
-    ASSERT_NE(value3, nullptr);
-    ASSERT_NE(value4, nullptr);
-    ASSERT_NE(value5, nullptr);
-  }
-
-  ASSERT_EQ(FooInstance::ctor, 1);
-  ASSERT_EQ(FooInstance::dtor, 1);
+  SUCCEED();
 }
 
-TEST(InjectionSuite, PrimitiveBind) {
-  bind<DefaultConstructor>::set("value", 42);
+TEST(InjectionSuite, SharedNoDefaultConstructor) {
+  std::shared_ptr<NoDefaultConstructor> value = get{};
 
-  ASSERT_EQ(*bind<DefaultConstructor>::get<int>("value"), 42);
+  SUCCEED();
 }
 
-TEST(InjectionSuite, LazyInstanceSharedPointerInjection) {
-  FooInstance::ctor = 0;
-  FooInstance::dtor = 0;
+TEST(InjectionSuite, UniqueNoDefaultConstructor) {
+  std::unique_ptr<NoDefaultConstructor> value = get{};
 
-  {  
-    auto object = lazy{};
-
-    std::shared_ptr<FooInstance> value1 = object;
-    std::shared_ptr<FooInstance> value2 = object;
-    std::shared_ptr<FooInstance> value3 = object;
-    std::shared_ptr<FooInstance> value4 = object;
-    std::shared_ptr<FooInstance> value5 = object;
-
-    ASSERT_NE(value1, nullptr);
-    ASSERT_NE(value2, nullptr);
-    ASSERT_NE(value3, nullptr);
-    ASSERT_NE(value4, nullptr);
-    ASSERT_NE(value5, nullptr);
-  }
-
-  ASSERT_EQ(FooInstance::ctor, 1);
-  ASSERT_EQ(FooInstance::dtor, 1);
+  SUCCEED();
 }
 
-TEST(InjectionSuite, LazyInstancePointerInjection) {
-  {  
-    auto object = lazy{};
+// single instatiation
+TEST(InjectionSuite, SingleInstantiation) {
+  SingleInstantiation *value = get{};
 
-    int *value1 = object;
-    int *value2 = object;
-    int *value3 = object;
-    int *value4 = object;
-    int *value5 = object;
+  SUCCEED();
+}
 
-    ASSERT_NE(value1, nullptr);
-    ASSERT_NE(value2, nullptr);
-    ASSERT_NE(value3, nullptr);
-    ASSERT_NE(value4, nullptr);
-    ASSERT_NE(value5, nullptr);
+TEST(InjectionSuite, SharedSingleInstantiation) {
+  std::shared_ptr<SingleInstantiation> value = get{};
 
-    ASSERT_EQ(value1, value5);
+  SUCCEED();
+}
+
+// undefined instatiation
+TEST(InjectionSuite, UndefinedInstatiation) {
+  try {
+    UndefinedInstantiation value = get{};
+
+    FAIL();
+  } catch (...) {
   }
 }
 
-TEST(InjectionSuite, InheritanceInjection) {
-  struct InjectionTest : injection<DefaultConstructor> {
-    InjectionTest() {
-      auto obj = inject<DefaultConstructor>();
-    }
-  };
+TEST(InjectionSuite, PointerUndefinedInstatiation) {
+  try {
+    UndefinedInstantiation *value = get{};
+
+    FAIL();
+  } catch (...) {
+  }
+}
+
+TEST(InjectionSuite, SharedUndefinedInstatiation) {
+  try {
+    std::shared_ptr<UndefinedInstantiation> value = get{};
+
+    FAIL();
+  } catch (...) {
+  }
+}
+
+TEST(InjectionSuite, UniqueUndefinedInstatiation) {
+  try {
+    std::unique_ptr<UndefinedInstantiation> value = get{};
+
+    FAIL();
+  } catch (...) {
+  }
+}
+
+int main(int argc, char* argv[]) {
+    ::testing::InitGoogleTest(&argc, argv);
+
+    ::testing::AddGlobalTestEnvironment(new Environment);
+
+    return RUN_ALL_TESTS();
 }
