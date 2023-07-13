@@ -26,6 +26,16 @@ struct UndefinedInstantiation {
   }
 };
 
+struct SharedInstantiation {
+  SharedInstantiation() {
+  }
+};
+
+struct UniqueInstantiation {
+  UniqueInstantiation() {
+  }
+};
+
 class Environment : public ::testing::Environment {
   
   public:
@@ -96,7 +106,7 @@ class Environment : public ::testing::Environment {
         };
       }
 
-      void LoadSingleInstantiation() {
+      void LoadSingleInstantiationModule() {
         FACTORY(SingleInstantiation*) {
           return new SingleInstantiation{};
         };
@@ -106,11 +116,25 @@ class Environment : public ::testing::Environment {
         };
       }
 
+      void LoadSharedInstantiationModule() {
+        SHARED(SharedInstantiation) {
+          return new SharedInstantiation{};
+        };
+      }
+
+      void LoadUniqueInstantiationModule() {
+        UNIQUE(UniqueInstantiation) {
+          return new UniqueInstantiation{};
+        };
+      }
+
       void LoadModules() {
         LoadPrimitiveModule();
         LoadDefaultConstructorModule();
         LoadNoDefaultConstructorModule();
-        LoadSingleInstantiation();
+        LoadSingleInstantiationModule();
+        LoadSharedInstantiationModule();
+        LoadUniqueInstantiationModule();
       }
 
 };
@@ -238,6 +262,20 @@ TEST(InjectionSuite, UniqueUndefinedInstatiation) {
     FAIL();
   } catch (...) {
   }
+}
+
+// shared instatiation
+TEST(InjectionSuite, SharedInstantiation) {
+  std::shared_ptr<SharedInstantiation> value = get{};
+
+  SUCCEED();
+}
+
+// unique instatiation
+TEST(InjectionSuite, UniqueInstantiation) {
+  std::unique_ptr<UniqueInstantiation> value = get{};
+
+  SUCCEED();
 }
 
 int main(int argc, char* argv[]) {

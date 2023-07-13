@@ -101,6 +101,56 @@ namespace jinject {
 #define FACTORY(T) \
   factory<T> {[]() -> T { throw 0; }} = []() -> T 
 
+  namespace details {
+    struct InternalType {};
+
+    template <typename T>
+      requires (!SmartPtrConcept<T>) && (!PointerConcept<T>)
+      struct shared {
+        shared(shared const &) = delete;
+        shared(shared &&) = delete;
+
+        shared(InternalType) {
+        }
+
+        shared & operator = (std::function<T*()> const &callback) {
+          factory<std::shared_ptr<T>> {
+            [=]() {
+              return std::shared_ptr<T>(callback());
+            }
+          };
+
+          return *this;
+        }
+      };
+
+#define SHARED(T) \
+    details::shared<T> {details::InternalType{}} = []() -> T*
+
+    template <typename T>
+      requires (!SmartPtrConcept<T>) && (!PointerConcept<T>)
+      struct unique {
+        unique(unique const &) = delete;
+        unique(unique &&) = delete;
+
+        unique(InternalType) {
+        }
+
+        unique & operator = (std::function<T*()> const &callback) {
+          factory<std::unique_ptr<T>> {
+            [=]() {
+              return std::unique_ptr<T>(callback());
+            }
+          };
+
+          return *this;
+        }
+      };
+
+#define UNIQUE(T) \
+    details::unique<T> {details::InternalType{}} = []() -> T*
+  }
+
   template <typename T>
     struct single: instantiation<T> {
       single(single const &) = delete;
