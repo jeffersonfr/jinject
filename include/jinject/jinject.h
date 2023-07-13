@@ -25,43 +25,13 @@ namespace jinject {
   template <typename T>
     concept NoPointer = !PointerConcept<T>;
     
-/*
-  template <typename T, typename ...Args>
-    requires (!SmartPtrConcept<T>)
-    T inject(Args ...args) {
-      if constexpr (!std::is_pointer_v<T>) {
-        return T{std::forward<Args>(args)...};
-      } else {
-        using type = typename std::pointer_traits<T>::element_type;
-
-        return new type{std::forward<Args>(args)...};
-      }
-    }
-
-  template <typename T, typename ...Args>
-    requires SharedPtrConcept<T>
-    T inject(Args ...args) {
-      using Value = typename T::element_type;
-
-      return std::make_shared<Value>(std::forward<Args>(args)...);
-    }
-
-  template <typename T, typename ...Args>
-    requires UniquePtrConcept<T>
-    T inject(Args ...args) {
-      using Value = typename T::element_type;
-
-      return std::make_unique<Value>(std::forward<Args>(args)...);
-    }
-*/
-
   enum instantiation_type {
     UNKNOWN,
     SINGLE,
     FACTORY
   };
 
-  template <typename T>
+  template <typename T, typename ...Signature>
   struct instantiation {
     static inline instantiation_type type = UNKNOWN;
 
@@ -72,16 +42,16 @@ namespace jinject {
     }
   };
 
-  template <typename T>
-    struct factory: instantiation<T> {
+  template <typename T, typename ...Signature>
+    struct factory: instantiation<T, Signature...> {
       factory(factory const &) = delete;
       factory(factory &&) = delete;
 
       template <typename ...Args>
-        factory(std::function<T()> callback): instantiation<T>() {
+        factory(std::function<T()> callback): instantiation<T, Signature...>() {
           mCallback = callback;
 
-          instantiation<T>::type = FACTORY;
+          instantiation<T, Signature...>::type = FACTORY;
         }
 
       static T get() {
@@ -98,13 +68,13 @@ namespace jinject {
         static inline std::function<T()> mCallback;
     };
 
-#define FACTORY(T) \
-  factory<T> {[]() -> T { throw 0; }} = []() -> T 
+#define FACTORY(T, ...) \
+  factory<T, ##__VA_ARGS__> {[]() -> T { throw 0; }} = []() -> T 
 
   namespace details {
     struct InternalType {};
 
-    template <typename T>
+    template <typename T, typename ...Signature>
       requires (!SmartPtrConcept<T>) && (!PointerConcept<T>)
       struct shared {
         shared(shared const &) = delete;
@@ -114,9 +84,9 @@ namespace jinject {
         }
 
         shared & operator = (std::function<T*()> const &callback) {
-          factory<std::shared_ptr<T>> {
+          factory<std::shared_ptr<T>, Signature...> {
             [=]() {
-              return std::shared_ptr<T>(callback());
+              return std::shared_ptr<T, Signature...>(callback());
             }
           };
 
@@ -124,10 +94,10 @@ namespace jinject {
         }
       };
 
-#define SHARED(T) \
-    details::shared<T> {details::InternalType{}} = []() -> T*
+#define SHARED(T, ...) \
+    details::shared<T, ##__VA_ARGS__> {details::InternalType{}} = []() -> T*
 
-    template <typename T>
+    template <typename T, typename ...Signature>
       requires (!SmartPtrConcept<T>) && (!PointerConcept<T>)
       struct unique {
         unique(unique const &) = delete;
@@ -137,7 +107,7 @@ namespace jinject {
         }
 
         unique & operator = (std::function<T*()> const &callback) {
-          factory<std::unique_ptr<T>> {
+          factory<std::unique_ptr<T>, Signature...> {
             [=]() {
               return std::unique_ptr<T>(callback());
             }
@@ -147,26 +117,26 @@ namespace jinject {
         }
       };
 
-#define UNIQUE(T) \
-    details::unique<T> {details::InternalType{}} = []() -> T*
+#define UNIQUE(T, ...) \
+    details::unique<T, ##__VA_ARGS__> {details::InternalType{}} = []() -> T*
   }
 
-  template <typename T>
-    struct single: instantiation<T> {
+  template <typename T, typename ...Signature>
+    struct single: instantiation<T, Signature...> {
       single(single const &) = delete;
       single(single &&) = delete;
     };
 
-  template <typename T>
-    struct single<T*>: instantiation<T*> {
+  template <typename T, typename ...Signature>
+    struct single<T*, Signature...>: instantiation<T*, Signature...> {
       single(single const &) = delete;
       single(single &&) = delete;
 
       template <typename ...Args>
-        single(std::function<T*()> callback): instantiation<T*>() {
+        single(std::function<T*()> callback): instantiation<T*, Signature...>() {
           mInstance = callback();
 
-          instantiation<T*>::type = SINGLE;
+          instantiation<T*, Signature...>::type = SINGLE;
         }
 
       static T const * const get() {
@@ -183,16 +153,16 @@ namespace jinject {
         static inline T *mInstance;
     };
 
-  template <typename T>
-    struct single<std::shared_ptr<T>>: instantiation<std::shared_ptr<T>> {
+  template <typename T, typename ...Signature>
+    struct single<std::shared_ptr<T>, Signature...>: instantiation<std::shared_ptr<T>, Signature...> {
       single(single const &) = delete;
       single(single &&) = delete;
 
       template <typename ...Args>
-        single(std::function<std::shared_ptr<T>()> callback): instantiation<std::shared_ptr<T>>() {
+        single(std::function<std::shared_ptr<T>()> callback): instantiation<std::shared_ptr<T>, Signature...>() {
           mInstance = callback();
 
-          instantiation<std::shared_ptr<T>>::type = SINGLE;
+          instantiation<std::shared_ptr<T>, Signature...>::type = SINGLE;
         }
 
       static std::shared_ptr<T> const get() {
@@ -209,55 +179,28 @@ namespace jinject {
         static inline std::shared_ptr<T> mInstance;
     };
 
-#define SINGLE(T) \
-  single<T> {[]() -> T { throw 0; }} = []() -> T 
+#define SINGLE(T, ...) \
+  single<T, ##__VA_ARGS__> {[]() -> T { throw 0; }} = []() -> T 
 
-  struct get {
-    get() = default;
+  template <typename ...Signature>
+    struct get {
+      get() = default;
 
-    template <typename T>
-      operator T () const {
-        if (instantiation<T>::type == SINGLE) {
-          if constexpr(SharedPtrConcept<T>) {
-            return single<T>::get();
-          } else {
-            throw std::runtime_error("jinject::single instantiation must use shared smart pointer");
-          }
-        } else if (instantiation<T>::type == FACTORY) {
-          return factory<T>::get();
-        }
-
-        throw std::runtime_error("jinject::undefined instantiation");
-      }
-  };
-
-  template <typename T>
-    struct dependency_base {
-      virtual ~dependency_base() {
-      }
-
-      T instance() {
-        return mInstance;
-      }
-
-      protected:
-      	T mInstance = get{};
-    };
-
-  template <typename T>
-    struct dependency : public dependency_base<T> {
-      virtual ~dependency() {
-        if constexpr (std::is_pointer_v<T>) {
-          delete this->mInstance;
-        }
-      }
-    };
-
-  template <typename ...Args>
-    struct injection : protected dependency<Args>... {
       template <typename T>
-        T inject() {
-          return dependency<T>::instance();
+        operator T () const {
+          if (instantiation<T, Signature...>::type == SINGLE) {
+            if constexpr(SharedPtrConcept<T>) {
+              return single<T, Signature...>::get();
+            } else {
+              throw std::runtime_error("jinject::single instantiation must use shared smart pointer");
+            }
+          } else if (instantiation<T, Signature...>::type == FACTORY) {
+            return factory<T, Signature...>::get();
+          }
+
+          throw std::runtime_error("jinject::undefined instantiation");
         }
     };
 }
+
+#define G get{}

@@ -7,8 +7,7 @@
 using namespace jinject;
 
 struct DefaultConstructor {
-  DefaultConstructor() {
-  }
+  DefaultConstructor() = default;
 };
 
 struct NoDefaultConstructor {
@@ -17,23 +16,28 @@ struct NoDefaultConstructor {
 };
 
 struct SingleInstantiation {
-  SingleInstantiation() {
-  }
 };
 
 struct UndefinedInstantiation {
-  UndefinedInstantiation() {
-  }
 };
 
 struct SharedInstantiation {
-  SharedInstantiation() {
-  }
 };
 
 struct UniqueInstantiation {
-  UniqueInstantiation() {
+};
+
+struct SignatureType1 {
+};
+
+struct SignatureType2 {
+};
+
+struct CustomInstantiation {
+  CustomInstantiation(int value): mValue{value} {
   }
+
+  int mValue{0};
 };
 
 class Environment : public ::testing::Environment {
@@ -128,6 +132,16 @@ class Environment : public ::testing::Environment {
         };
       }
 
+      void LoadCustomInstantiationModule() {
+        FACTORY(CustomInstantiation, SignatureType1) {
+          return CustomInstantiation{1};
+        };
+
+        FACTORY(CustomInstantiation, SignatureType2) {
+          return CustomInstantiation{2};
+        };
+      }
+
       void LoadModules() {
         LoadPrimitiveModule();
         LoadDefaultConstructorModule();
@@ -135,6 +149,7 @@ class Environment : public ::testing::Environment {
         LoadSingleInstantiationModule();
         LoadSharedInstantiationModule();
         LoadUniqueInstantiationModule();
+        LoadCustomInstantiationModule();
       }
 
 };
@@ -273,9 +288,18 @@ TEST(InjectionSuite, SharedInstantiation) {
 
 // unique instatiation
 TEST(InjectionSuite, UniqueInstantiation) {
-  std::unique_ptr<UniqueInstantiation> value = get{};
+  std::unique_ptr<UniqueInstantiation> value = G;
 
   SUCCEED();
+}
+
+// custom instatiation
+TEST(InjectionSuite, CustomInstantiation) {
+  CustomInstantiation value1 = get<SignatureType1>{};
+  CustomInstantiation value2 = get<SignatureType2>{};
+
+  ASSERT_EQ(value1.mValue, 1);
+  ASSERT_EQ(value2.mValue, 2);
 }
 
 int main(int argc, char* argv[]) {
