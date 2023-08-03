@@ -84,9 +84,19 @@ namespace jinject {
         }
 
         shared & operator = (std::function<T*()> const &callback) {
+          std::weak_ptr<T, Signature...> weak;
+
           factory<std::shared_ptr<T>, Signature...> {
-            [=]() {
-              return std::shared_ptr<T, Signature...>(callback());
+            [=]() mutable {
+              if (auto ptr = weak.lock()) {
+                return ptr;
+              }
+
+              auto ptr = std::shared_ptr<T, Signature...>(callback());
+
+              weak = ptr;
+
+              return ptr;
             }
           };
 
