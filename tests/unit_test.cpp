@@ -286,6 +286,17 @@ TEST(InjectionSuite, SharedInstantiation) {
   SUCCEED();
 }
 
+TEST(InjectionSuite, SharedInstantiationCompared) {
+  std::shared_ptr<SharedInstantiation> value1 = get{};
+  std::shared_ptr<SharedInstantiation> value2 = get{};
+
+  if (value1.get() != value2.get()) {
+    FAIL();
+  }
+
+  SUCCEED();
+}
+
 // unique instatiation
 TEST(InjectionSuite, UniqueInstantiation) {
   std::unique_ptr<UniqueInstantiation> value = G;
@@ -300,6 +311,33 @@ TEST(InjectionSuite, CustomInstantiation) {
 
   ASSERT_EQ(value1.mValue, 1);
   ASSERT_EQ(value2.mValue, 2);
+}
+
+// mutiple binds
+TEST(InjectionSuite, MultipleBind) {
+  // multiple bind instantiation
+  struct MyType {};
+
+  MyType *ptr1 = new MyType{};
+  MyType *ptr2 = new MyType{};
+  
+  FACTORY(MyType*, SignatureType1) {
+    return ptr1;
+  };
+
+  FACTORY(MyType*, SignatureType2) {
+    return ptr2;
+  };
+
+  // list all binds
+  std::vector<MyType*> binds = all{};
+
+  if (binds.size() != 2) {
+    FAIL();
+  }
+
+  ASSERT_EQ(binds[0], ptr1);
+  ASSERT_EQ(binds[1], ptr2);
 }
 
 int main(int argc, char* argv[]) {

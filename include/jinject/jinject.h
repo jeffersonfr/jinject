@@ -31,11 +31,52 @@ namespace jinject {
     FACTORY
   };
 
+  namespace details {
+    template <typename T>
+      struct all_binds {
+        inline static std::vector<std::function<T()>> mCallbacks;
+
+        static void add(std::function<T()> callback) {
+          mCallbacks.push_back(callback);
+        }
+      };
+  }
+
+  struct all {
+    template <typename T, template <typename ...> class Container>
+      operator Container<T> () {
+        auto &callbacks = details::all_binds<T>::mCallbacks;
+
+        Container<T> result(callbacks.size());
+
+        std::transform(callbacks.begin(), callbacks.end(), result.begin(),
+          [](auto value) {
+            return value();
+          });
+
+        return result;
+      }
+  };
+
+  template <typename ...Signature>
+    struct get;
+
   template <typename T, typename ...Signature>
-  struct instantiation {
+    struct bind {
+      bind() {
+        auto callback = []() {
+          return static_cast<T>(get<Signature...>{});
+        };
+
+        details::all_binds<T>::add(callback);
+      }
+    };
+
+  template <typename T, typename ...Signature>
+  struct instantiation : public bind<T, Signature...> {
     static inline instantiation_type type = UNKNOWN;
 
-    instantiation() {
+    instantiation(): bind<T, Signature...>() {
       if (type != UNKNOWN) {
         throw std::runtime_error("jinject::instantiation already defined");
       }
@@ -69,7 +110,7 @@ namespace jinject {
     };
 
 #define FACTORY(T, ...) \
-  factory<T, ##__VA_ARGS__> {[]() -> T { throw 0; }} = []() -> T 
+  factory<T, ##__VA_ARGS__> {[]() -> T { throw 0; }} = [=]() -> T 
 
   namespace details {
     struct InternalType {};
@@ -190,7 +231,7 @@ namespace jinject {
     };
 
 #define SINGLE(T, ...) \
-  single<T, ##__VA_ARGS__> {[]() -> T { throw 0; }} = []() -> T 
+  single<T, ##__VA_ARGS__> {[]() -> T { throw 0; }} = [=]() -> T 
 
   template <typename ...Signature>
     struct get {
