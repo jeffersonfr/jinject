@@ -47,9 +47,9 @@ namespace jinject {
       operator Container<T> () {
         auto &callbacks = details::all_binds<T>::mCallbacks;
 
-        Container<T> result(callbacks.size());
+        Container<T> result;
 
-        std::transform(callbacks.begin(), callbacks.end(), result.begin(),
+        std::transform(callbacks.begin(), callbacks.end(), std::back_inserter(result),
           [](auto value) {
             return value();
           });
