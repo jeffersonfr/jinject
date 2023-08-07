@@ -50,7 +50,7 @@ namespace jinject {
         Container<T> result;
 
         std::transform(callbacks.begin(), callbacks.end(), std::back_inserter(result),
-          [](auto value) {
+          [](auto &&value) {
             return value();
           });
 
