@@ -90,9 +90,11 @@ namespace jinject {
 
       template <typename ...Args>
         factory(std::function<T()> callback): instantiation<T, Signature...>() {
-          mCallback = callback;
+          if (callback) {
+            mCallback = callback;
 
-          instantiation<T, Signature...>::type = FACTORY;
+            instantiation<T, Signature...>::type = FACTORY;
+          }
         }
 
       static T get() {
@@ -100,7 +102,13 @@ namespace jinject {
       }
 
       factory & operator = (std::function<T()> const &callback) {
+        if (instantiation<std::shared_ptr<T>, Signature...>::type != UNKNOWN) {
+          throw std::runtime_error("jinject::unable to replace instantiation");
+        }
+
         mCallback = callback;
+
+        instantiation<T, Signature...>::type = FACTORY;
 
         return *this;
       }
@@ -110,7 +118,7 @@ namespace jinject {
     };
 
 #define FACTORY(T, ...) \
-  factory<T, ##__VA_ARGS__> {[]() -> T { throw 0; }} = [=]() -> T 
+  factory<T, ##__VA_ARGS__> { nullptr } = [=]() -> T 
 
   namespace details {
     struct InternalType {};
@@ -211,9 +219,11 @@ namespace jinject {
 
       template <typename ...Args>
         single(std::function<std::shared_ptr<T>()> callback): instantiation<std::shared_ptr<T>, Signature...>() {
-          mInstance = callback();
+          if (callback) {
+            mInstance = callback();
 
-          instantiation<std::shared_ptr<T>, Signature...>::type = SINGLE;
+            instantiation<std::shared_ptr<T>, Signature...>::type = SINGLE;
+          }
         }
 
       static std::shared_ptr<T> const get() {
@@ -221,7 +231,13 @@ namespace jinject {
       }
 
       single & operator = (std::function<std::shared_ptr<T>()> const &callback) {
+        if (instantiation<std::shared_ptr<T>, Signature...>::type != UNKNOWN) {
+          throw std::runtime_error("jinject::unable to replace instantiation");
+        }
+
         mInstance = callback();
+
+        instantiation<std::shared_ptr<T>, Signature...>::type = SINGLE;
 
         return *this;
       }
@@ -231,7 +247,7 @@ namespace jinject {
     };
 
 #define SINGLE(T, ...) \
-  single<T, ##__VA_ARGS__> {[]() -> T { throw 0; }} = [=]() -> T 
+  single<T, ##__VA_ARGS__> { nullptr } = [=]() -> T 
 
   template <typename ...Signature>
     struct get {
