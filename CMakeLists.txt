@@ -4,7 +4,12 @@ if (CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR "In-source build is not allowed")
 endif()
 
-project (jinject CXX)
+project(jinject
+  LANGUAGES CXX
+  HOMEPAGE_URL https://github.com/jeffersonfr/jinject
+  DESCRIPTION "A dependency injection helper"
+  VERSION 1.0.0
+)
 
 option(TESTS "Enable unit tests" OFF)
 option(CHECKER "Enable static code analysing" OFF)
@@ -45,7 +50,7 @@ Doxygen(include docs)
 
 install(DIRECTORY include/${CMAKE_PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
-# generate jinject.pc
-configure_file(${PROJECT_SOURCE_DIR}/jinject.pc.in ${PROJECT_BINARY_DIR}/jinject.pc.gen @ONLY)
-file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/jinject.pc INPUT "${CMAKE_BINARY_DIR}/jinject.pc.gen")
+# generate pc file
+configure_file(jinject.pc.in jinject.pc @ONLY)
+
 install(FILES ${CMAKE_BINARY_DIR}/jinject.pc DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)
