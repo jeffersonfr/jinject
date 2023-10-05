@@ -39,12 +39,6 @@ if (TESTS)
   add_subdirectory(tests)
 endif()
 
-configure_file(
-  ${PROJECT_SOURCE_DIR}/${CMAKE_PROJECT_NAME}.pc.in
-  ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.pc
-  @ONLY
-)
-
 include(Doxygen)
 Doxygen(include docs)
 
