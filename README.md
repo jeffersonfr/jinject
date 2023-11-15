@@ -156,3 +156,28 @@ Certain types should have only one instanciation in the project or, at least, on
     }
 
 ```
+
+## 7. eagle injection
+
+In some situations a injection must be followed by a second convertion of type. The example below shows a value of type 'long' that need get a 'int' value, but the system raises a runtime exception, because the api search for a 'long' instantiation, instead of a 'int' that was defined previously.
+
+    #include "jinject/jinject.h"
+
+    #include <iostream>
+
+    using namespace jinject;
+
+    void LoadModules() {
+        FACTORY(int) {
+            return 42;
+        };
+    }
+
+    int main() {
+        LoadModules();
+
+				long value = get{}; // compiles, but throws a runtime exeception because there isn't a 'long' instantiation
+				long value = inject<int>(); // refers to 'int' instantiation enabling the auto-casting
+    }
+
+```

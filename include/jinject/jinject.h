@@ -269,10 +269,10 @@ namespace jinject {
         }
     };
 
-	template <typename T>
-		decltype(auto) inject() {
-			return static_cast<T>(get{});
-		}
+  template <typename T>
+    decltype(auto) inject() {
+      return static_cast<T>(get{});
+    }
 }
 
 #define G get{}
