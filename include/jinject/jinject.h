@@ -268,6 +268,11 @@ namespace jinject {
           throw std::runtime_error("jinject::undefined instantiation");
         }
     };
+
+	template <typename T>
+		decltype(auto) inject() {
+			return static_cast<T>(get{});
+		}
 }
 
 #define G get{}

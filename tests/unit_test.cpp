@@ -340,6 +340,20 @@ TEST(InjectionSuite, MultipleBind) {
   ASSERT_EQ(binds[1], ptr2);
 }
 
+// auto return
+TEST(InjectionSuite, AutoReturn) {
+  decltype(auto) value = inject<int>();
+
+  ASSERT_EQ(value, 42);
+}
+
+// auto return
+TEST(InjectionSuite, CastingAutoReturn) {
+  long value = inject<int>();
+
+  ASSERT_EQ(value, 42L);
+}
+
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
 
