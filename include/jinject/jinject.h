@@ -8,6 +8,7 @@
 #include <optional>
 #include <functional>
 #include <iostream>
+#include <expected>
 
 namespace jinject {
   template <typename T>
@@ -272,6 +273,15 @@ namespace jinject {
   template <typename T>
     decltype(auto) inject() {
       return static_cast<T>(get{});
+    }
+
+  template <typename T>
+    [[nodiscard]] std::expected<T, std::string> inject_by() {
+      try {
+        return {static_cast<T>(get{})};
+      } catch (std::runtime_error &e) {
+        return std::unexpected{e.what()};
+      }
     }
 }
 

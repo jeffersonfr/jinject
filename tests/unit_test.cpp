@@ -347,11 +347,23 @@ TEST(InjectionSuite, AutoReturn) {
   ASSERT_EQ(value, 42);
 }
 
-// auto return
 TEST(InjectionSuite, CastingAutoReturn) {
   long value = inject<int>();
 
   ASSERT_EQ(value, 42L);
+}
+
+// inject with
+TEST(InjectionSuite, InjectWith) {
+  auto value = inject_by<int>().value_or(21);
+
+  ASSERT_EQ(value, 42);
+}
+
+TEST(InjectionSuite, EmptyInjectWith) {
+  auto value = inject_by<long>().value_or(21L);
+
+  ASSERT_EQ(value, 21L);
 }
 
 int main(int argc, char* argv[]) {
