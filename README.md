@@ -128,6 +128,7 @@ In this example, we use a mechanism known as a service locator. The `get{}` meth
 
 Certain types should have only one instanciation in the project or, at least, one instation for shared use over a period of time. For cases like that there is the type single{}. The lifetime of single instances is extended until all instances release the reference.
 
+```
     #include "jinject/jinject.h"
 
     #include <iostream>
@@ -161,6 +162,7 @@ Certain types should have only one instanciation in the project or, at least, on
 
 In some situations a injection must be followed by a second convertion of type. The example below shows a value of type 'long' that need get a 'int' value, but the system raises a runtime exception, because the api search for a 'long' instantiation, instead of a 'int' that was defined previously.
 
+```
     #include "jinject/jinject.h"
 
     #include <iostream>
@@ -176,8 +178,8 @@ In some situations a injection must be followed by a second convertion of type. 
     int main() {
         LoadModules();
 
-				long value = get{}; // compiles, but throws a runtime exeception because there isn't a 'long' instantiation
-				long value = inject<int>(); // refers to 'int' instantiation enabling the auto-casting
+        long value = get{}; // compiles, but throws a runtime exeception because there isn't a 'long' instantiation
+        long value = inject<int>(); // refers to 'int' instantiation enabling the auto-casting
     }
 
 ```
