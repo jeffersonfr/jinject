@@ -179,6 +179,16 @@ namespace jinject {
 
 #define UNIQUE(T, ...) \
     details::unique<T, ##__VA_ARGS__> {details::InternalType{}} = []() -> T*
+
+    std::string demangle(char const *name) {
+      int status = -999;
+
+      std::unique_ptr<char, void(*)(void*)> res {
+          abi::__cxa_demangle(name, NULL, NULL, &status), std::free
+      };
+
+      return (status == 0)?res.get():name;
+    }
   }
 
   template <typename T, typename ...Signature>
@@ -266,7 +276,11 @@ namespace jinject {
             return factory<T, Signature...>::get();
           }
 
-          throw std::runtime_error("jinject::undefined instantiation");
+          std::ostringstream o;
+
+          o << "jinject::undefined instantiation [" << demangle(typeid(T).name());
+
+          throw std::runtime_error(o.str());
         }
     };
 
