@@ -10,6 +10,8 @@
 #include <iostream>
 #include <expected>
 
+#include <cxxabi.h>
+
 namespace jinject {
   template <typename T>
     concept SharedPtrConcept = std::same_as<std::shared_ptr<typename T::element_type>, T>;
@@ -278,7 +280,7 @@ namespace jinject {
 
           std::ostringstream o;
 
-          o << "jinject::undefined instantiation [" << demangle(typeid(T).name());
+          o << "jinject::undefined instantiation [" << details::demangle(typeid(T).name());
 
           throw std::runtime_error(o.str());
         }
