@@ -286,15 +286,15 @@ namespace jinject {
         }
     };
 
-  template <typename T>
+  template <typename T, typename ...Signature>
     decltype(auto) inject() {
-      return static_cast<T>(get{});
+      return static_cast<T>(get<Signature...>{});
     }
 
-  template <typename T>
+  template <typename T, typename ...Signature>
     [[nodiscard]] std::expected<T, std::string> inject_by() {
       try {
-        return {static_cast<T>(get{})};
+        return {static_cast<T>(get<Signature...>{})};
       } catch (std::runtime_error &e) {
         return std::unexpected{e.what()};
       }
