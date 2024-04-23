@@ -262,6 +262,34 @@ namespace jinject {
 #define SINGLE(T, ...) \
   single<T, ##__VA_ARGS__> { nullptr } = [=]() -> T 
 
+  template <typename T>
+  struct introspection {
+    static std::string to_string() {
+      return details::demangle(typeid(T).name());
+    }
+  };
+
+  template <typename T>
+  struct introspection<T*> {
+    static std::string to_string() {
+      return introspection<T>::to_string() + "*";
+    }
+  };
+
+  template <typename T>
+  struct introspection<std::shared_ptr<T>> {
+    static std::string to_string() {
+      return "std::shared_ptr<" + introspection<T>::to_string() + ">";
+    }
+  };
+
+  template <typename T>
+  struct introspection<std::unique_ptr<T>> {
+    static std::string to_string() {
+      return "std::unique_ptr<" + introspection<T>::to_string() + ">";
+    }
+  };
+
   template <typename ...Signature>
     struct get {
       get() = default;
@@ -280,7 +308,7 @@ namespace jinject {
 
           std::ostringstream o;
 
-          o << "jinject::undefined instantiation [" << details::demangle(typeid(T).name());
+          o << "jinject::undefined instantiation of " << std::quoted(introspection<T>::to_string());
 
           throw std::runtime_error(o.str());
         }
@@ -300,3 +328,4 @@ namespace jinject {
       }
     }
 }
+
