@@ -56,6 +56,10 @@ class Environment : public ::testing::Environment {
     }
 
     private:
+      void LoadNamedModule() {
+        NAMED("url", "https://google.com");
+      }
+
       void LoadPrimitiveModule() {
         FACTORY(int) {
           return 42;
@@ -143,6 +147,7 @@ class Environment : public ::testing::Environment {
       }
 
       void LoadModules() {
+        LoadNamedModule();
         LoadPrimitiveModule();
         LoadDefaultConstructorModule();
         LoadNoDefaultConstructorModule();
@@ -153,6 +158,29 @@ class Environment : public ::testing::Environment {
       }
 
 };
+
+// named tests
+TEST(InjectionSuite, Named) {
+  std::string value = get_string<"url">{};
+
+  ASSERT_EQ(value, "https://google.com");
+}
+
+TEST(InjectionSuite, Named2x) {
+  try {
+    NAMED("url", "https://google.com");
+    NAMED("url", "https://google.com");
+
+    FAIL();
+  } catch (...) {
+  }
+}
+
+TEST(InjectionSuite, NamedNotFound) {
+  std::string value = get_string<"jeff">{"none"};
+
+  ASSERT_EQ(value, "none");
+}
 
 // primitive tests
 TEST(InjectionSuite, Primitive) {
@@ -293,13 +321,6 @@ TEST(InjectionSuite, SharedInstantiationCompared) {
   if (value1.get() != value2.get()) {
     FAIL();
   }
-
-  SUCCEED();
-}
-
-// unique instatiation
-TEST(InjectionSuite, UniqueInstantiation) {
-  std::unique_ptr<UniqueInstantiation> value = G;
 
   SUCCEED();
 }

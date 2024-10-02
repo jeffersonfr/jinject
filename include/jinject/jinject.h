@@ -9,6 +9,8 @@
 #include <functional>
 #include <iostream>
 #include <expected>
+#include <iomanip>
+#include <map>
 
 #include <cxxabi.h>
 
@@ -61,69 +63,108 @@ namespace jinject {
       }
   };
 
-  template <typename ...Signature>
-    struct get;
+  template <size_t N> struct StringLiteral {
+  public:
+    constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
 
-  template <typename T, typename ...Signature>
-    struct bind {
-      bind() {
-        auto callback = []() {
-          return static_cast<T>(get<Signature...>{});
-        };
+    constexpr std::string to_string() const { return std::string{value, N - 1}; }
 
-        details::all_binds<T>::add(callback);
-      }
-    };
-
-  template <typename T, typename ...Signature>
-  struct instantiation : public bind<T, Signature...> {
-    static inline instantiation_type type = UNKNOWN;
-
-    instantiation(): bind<T, Signature...>() {
-      if (type != UNKNOWN) {
-        throw std::runtime_error("jinject::instantiation already defined");
-      }
-    }
+    char value[N];
   };
 
-  template <typename T, typename ...Signature>
-    struct factory: instantiation<T, Signature...> {
-      factory(factory const &) = delete;
-      factory(factory &&) = delete;
-
-      template <typename ...Args>
-        factory(std::function<T()> callback): instantiation<T, Signature...>() {
-          if (callback) {
-            mCallback = callback;
-
-            instantiation<T, Signature...>::type = FACTORY;
-          }
-        }
-
-      static T get() {
-        return mCallback();
+  struct named {
+    named(std::string const &id, std::string const &value) {
+      if (sNames.find(id) != sNames.end()) {
+        throw std::runtime_error(std::string("Name") + " '" + id + "' already defined");
       }
 
-      factory & operator = (std::function<T()> const &callback) {
-        if (instantiation<std::shared_ptr<T>, Signature...>::type != UNKNOWN) {
-          throw std::runtime_error("jinject::unable to replace instantiation");
+      sNames[id] = value;
+    }
+
+    inline static std::map<std::string, std::string> sNames;
+  };
+
+  template <StringLiteral ID>
+    struct get_string {
+      get_string(std::string const &value = "")
+        : mDefault{value}
+      {
+      }
+
+      operator std::string () {
+        auto item = named::sNames.find(ID.to_string());
+
+        if (item != named::sNames.end()) {
+          return item->second;
         }
 
-        mCallback = callback;
-
-        instantiation<T, Signature...>::type = FACTORY;
-
-        return *this;
+        return mDefault;
       }
 
       private:
-        static inline std::function<T()> mCallback;
+        std::string mDefault;
     };
 
-#define FACTORY(T, ...) \
-  factory<T, ##__VA_ARGS__> { nullptr } = [=]() -> T 
+  template <typename ...Signature>
+    struct get;
 
   namespace details {
+    template <typename T, typename ...Signature>
+      struct bind {
+        bind() {
+          auto callback = []() {
+            return static_cast<T>(get<Signature...>{});
+          };
+
+          details::all_binds<T>::add(callback);
+        }
+      };
+
+    template <typename T, typename ...Signature>
+    struct instantiation : public bind<T, Signature...> {
+      static inline instantiation_type type = UNKNOWN;
+
+      instantiation(): bind<T, Signature...>() {
+        if (type != UNKNOWN) {
+          throw std::runtime_error("jinject::instantiation already defined");
+        }
+      }
+    };
+
+    template <typename T, typename ...Signature>
+      struct factory: instantiation<T, Signature...> {
+        factory(factory const &) = delete;
+        factory(factory &&) = delete;
+
+        template <typename ...Args>
+          factory(std::function<T()> callback): instantiation<T, Signature...>() {
+            if (callback) {
+              mCallback = callback;
+
+              instantiation<T, Signature...>::type = FACTORY;
+            }
+          }
+
+        static T get() {
+          return mCallback();
+        }
+
+        factory & operator = (std::function<T()> const &callback) {
+          if (instantiation<std::shared_ptr<T>, Signature...>::type != UNKNOWN) {
+            throw std::runtime_error("jinject::unable to replace instantiation");
+          }
+
+          mCallback = callback;
+
+          instantiation<T, Signature...>::type = FACTORY;
+
+          return *this;
+        }
+
+        private:
+          static inline std::function<T()> mCallback;
+      };
+
     struct InternalType {};
 
     template <typename T, typename ...Signature>
@@ -156,8 +197,6 @@ namespace jinject {
         }
       };
 
-#define SHARED(T, ...) \
-    details::shared<T, ##__VA_ARGS__> {details::InternalType{}} = []() -> T*
 
     template <typename T, typename ...Signature>
       requires (!SmartPtrConcept<T>) && (!PointerConcept<T>)
@@ -179,9 +218,6 @@ namespace jinject {
         }
       };
 
-#define UNIQUE(T, ...) \
-    details::unique<T, ##__VA_ARGS__> {details::InternalType{}} = []() -> T*
-
     std::string demangle(char const *name) {
       int status = -999;
 
@@ -191,76 +227,73 @@ namespace jinject {
 
       return (status == 0)?res.get():name;
     }
-  }
 
-  template <typename T, typename ...Signature>
-    struct single: instantiation<T, Signature...> {
-      single(single const &) = delete;
-      single(single &&) = delete;
-    };
+    template <typename T, typename ...Signature>
+      struct single: instantiation<T, Signature...> {
+        single(single const &) = delete;
+        single(single &&) = delete;
+      };
 
-  template <typename T, typename ...Signature>
-    struct single<T*, Signature...>: instantiation<T*, Signature...> {
-      single(single const &) = delete;
-      single(single &&) = delete;
+    template <typename T, typename ...Signature>
+      struct single<T*, Signature...>: instantiation<T*, Signature...> {
+        single(single const &) = delete;
+        single(single &&) = delete;
 
-      template <typename ...Args>
-        single(std::function<T*()> callback): instantiation<T*, Signature...>() {
-          mInstance = callback();
-
-          instantiation<T*, Signature...>::type = SINGLE;
-        }
-
-      static T const * const get() {
-        return mInstance;
-      }
-
-      single & operator = (std::function<T*()> const &callback) {
-        mInstance = callback();
-
-        return *this;
-      }
-
-      private:
-        static inline T *mInstance;
-    };
-
-  template <typename T, typename ...Signature>
-    struct single<std::shared_ptr<T>, Signature...>: instantiation<std::shared_ptr<T>, Signature...> {
-      single(single const &) = delete;
-      single(single &&) = delete;
-
-      template <typename ...Args>
-        single(std::function<std::shared_ptr<T>()> callback): instantiation<std::shared_ptr<T>, Signature...>() {
-          if (callback) {
+        template <typename ...Args>
+          single(std::function<T*()> callback): instantiation<T*, Signature...>() {
             mInstance = callback();
 
-            instantiation<std::shared_ptr<T>, Signature...>::type = SINGLE;
+            instantiation<T*, Signature...>::type = SINGLE;
           }
+
+        static T const * const get() {
+          return mInstance;
         }
 
-      static std::shared_ptr<T> const get() {
-        return mInstance;
-      }
+        single & operator = (std::function<T*()> const &callback) {
+          mInstance = callback();
 
-      single & operator = (std::function<std::shared_ptr<T>()> const &callback) {
-        if (instantiation<std::shared_ptr<T>, Signature...>::type != UNKNOWN) {
-          throw std::runtime_error("jinject::unable to replace instantiation");
+          return *this;
         }
 
-        mInstance = callback();
+        private:
+          static inline T *mInstance;
+      };
 
-        instantiation<std::shared_ptr<T>, Signature...>::type = SINGLE;
+    template <typename T, typename ...Signature>
+      struct single<std::shared_ptr<T>, Signature...>: instantiation<std::shared_ptr<T>, Signature...> {
+        single(single const &) = delete;
+        single(single &&) = delete;
 
-        return *this;
-      }
+        template <typename ...Args>
+          single(std::function<std::shared_ptr<T>()> callback): instantiation<std::shared_ptr<T>, Signature...>() {
+            if (callback) {
+              mInstance = callback();
 
-      private:
-        static inline std::shared_ptr<T> mInstance;
-    };
+              instantiation<std::shared_ptr<T>, Signature...>::type = SINGLE;
+            }
+          }
 
-#define SINGLE(T, ...) \
-  single<T, ##__VA_ARGS__> { nullptr } = [=]() -> T 
+        static std::shared_ptr<T> const get() {
+          return mInstance;
+        }
+
+        single & operator = (std::function<std::shared_ptr<T>()> const &callback) {
+          if (instantiation<std::shared_ptr<T>, Signature...>::type != UNKNOWN) {
+            throw std::runtime_error("jinject::unable to replace instantiation");
+          }
+
+          mInstance = callback();
+
+          instantiation<std::shared_ptr<T>, Signature...>::type = SINGLE;
+
+          return *this;
+        }
+
+        private:
+          static inline std::shared_ptr<T> mInstance;
+      };
+  }
 
   template <typename T>
   struct introspection {
@@ -296,14 +329,14 @@ namespace jinject {
 
       template <typename T>
         operator T () const {
-          if (instantiation<T, Signature...>::type == SINGLE) {
+          if (details::instantiation<T, Signature...>::type == SINGLE) {
             if constexpr(SharedPtrConcept<T>) {
-              return single<T, Signature...>::get();
+              return details::single<T, Signature...>::get();
             } else {
               throw std::runtime_error("jinject::single instantiation must use shared smart pointer");
             }
-          } else if (instantiation<T, Signature...>::type == FACTORY) {
-            return factory<T, Signature...>::get();
+          } else if (details::instantiation<T, Signature...>::type == FACTORY) {
+            return details::factory<T, Signature...>::get();
           }
 
           std::ostringstream o;
@@ -328,4 +361,19 @@ namespace jinject {
       }
     }
 }
+
+#define NAMED(ID, VALUE) \
+  named{ID, VALUE}
+
+#define FACTORY(T, ...) \
+  details::factory<T, ##__VA_ARGS__> { nullptr } = [=]() -> T 
+
+#define SHARED(T, ...) \
+  details::shared<T, ##__VA_ARGS__> {details::InternalType{}} = []() -> T*
+
+#define UNIQUE(T, ...) \
+  details::unique<T, ##__VA_ARGS__> {details::InternalType{}} = []() -> T*
+
+#define SINGLE(T, ...) \
+  details::single<T, ##__VA_ARGS__> { nullptr } = [=]() -> T 
 
