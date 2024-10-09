@@ -14,6 +14,8 @@
 
 #include <cxxabi.h>
 
+#include "jmixin/jstring.h"
+
 namespace jinject {
   template <typename T>
     concept SharedPtrConcept = std::same_as<std::shared_ptr<typename T::element_type>, T>;
@@ -73,7 +75,15 @@ namespace jinject {
   };
 
   struct named {
-    named(std::string const &id, std::string const &value) {
+    named(std::string const &id, auto const &value) {
+      if (sNames.find(id) != sNames.end()) {
+        throw std::runtime_error(std::string("Name") + " '" + id + "' already defined");
+      }
+
+      sNames[id] = std::to_string(value);
+    }
+
+    named(std::string const &id, char const *value) {
       if (sNames.find(id) != sNames.end()) {
         throw std::runtime_error(std::string("Name") + " '" + id + "' already defined");
       }
@@ -81,28 +91,89 @@ namespace jinject {
       sNames[id] = value;
     }
 
-    inline static std::map<std::string, std::string> sNames;
+    inline static std::map<std::string, jmixin::String> sNames;
   };
 
   template <StringLiteral ID>
-    struct get_string {
-      get_string(std::string const &value = "")
+    struct get_named {
+      get_named(std::string const &value = "")
         : mDefault{value}
       {
       }
 
-      operator std::string () {
+      std::expected<int32_t, std::string> get_int() {
+        try {
+          return std::stoi(get_string().value_or(""));
+        } catch (std::invalid_argument &e) {
+          // logt
+        } catch (std::out_of_range &e) {
+          // logt
+        }
+
+        return std::unexpected{"unable to convert named value to 'int'"};
+      }
+
+      std::expected<int64_t, std::string> get_long() {
+        try {
+          return std::stoll(get_string().value_or(""));
+        } catch (std::invalid_argument &e) {
+          // logt
+        } catch (std::out_of_range &e) {
+          // logt
+        }
+
+        return std::unexpected{"unable to convert named value to 'long'"};
+      }
+
+      std::expected<float, std::string> get_float() {
+        try {
+          return std::stof(get_string().value_or(""));
+        } catch (std::invalid_argument &e) {
+          // logt
+        } catch (std::out_of_range &e) {
+          // logt
+        }
+
+        return std::unexpected{"unable to convert named value to 'float'"};
+      }
+
+      std::expected<double, std::string> get_double() {
+        try {
+          return std::stod(get_string().value_or(""));
+        } catch (std::invalid_argument &e) {
+          // logt
+        } catch (std::out_of_range &e) {
+          // logt
+        }
+
+        return std::unexpected{"unable to convert named value to 'double'"};
+      }
+
+      std::expected<jmixin::String, std::string> get_string() {
         auto item = named::sNames.find(ID.to_string());
 
         if (item != named::sNames.end()) {
-          return item->second;
+          return {item->second};
         }
 
-        return mDefault;
+        return std::unexpected{"no return registered"};
+      }
+
+      template <typename ...Args>
+        jmixin::String format(Args ...args) {
+          return get_string().value_or(mDefault).format(args...);
+        }
+
+      operator std::string () {
+        return get_string().value_or(mDefault);
+      }
+
+      operator jmixin::String () {
+        return get_string().value_or(mDefault);
       }
 
       private:
-        std::string mDefault;
+        jmixin::String mDefault;
     };
 
   template <typename ...Signature>

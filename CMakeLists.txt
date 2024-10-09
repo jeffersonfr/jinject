@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 3.15)
 
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR "In-source build is not allowed")
@@ -25,12 +25,27 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 find_package(Threads REQUIRED)
 
+include(FetchContent)
+
+# jmixin
+FetchContent_Declare(
+  jmixin
+  GIT_REPOSITORY https://github.com/jeffersonfr/jmixin.git
+)
+FetchContent_MakeAvailable(jmixin)
+
 add_library(${PROJECT_NAME} INTERFACE
   )
+
+  target_link_libraries(${PROJECT_NAME}
+    INTERFACE 
+      jmixin
+)
 
 target_include_directories(${PROJECT_NAME}
   INTERFACE 
     ${PROJECT_SOURCE_DIR}/include
+    jmixin
   )
 
 enable_testing()

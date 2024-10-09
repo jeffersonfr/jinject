@@ -58,6 +58,8 @@ class Environment : public ::testing::Environment {
     private:
       void LoadNamedModule() {
         NAMED("url", "https://google.com");
+        NAMED("url2", "https://google.com/{}/{}");
+        NAMED("value", 42);
       }
 
       void LoadPrimitiveModule() {
@@ -161,9 +163,15 @@ class Environment : public ::testing::Environment {
 
 // named tests
 TEST(InjectionSuite, Named) {
-  std::string value = get_string<"url">{};
+  std::string value = get_named<"url">{};
 
   ASSERT_EQ(value, "https://google.com");
+}
+
+TEST(InjectionSuite, NamedFormat) {
+  std::string value = get_named<"url2">{}.format(42, 21);
+
+  ASSERT_EQ(value, "https://google.com/42/21");
 }
 
 TEST(InjectionSuite, Named2x) {
@@ -177,9 +185,15 @@ TEST(InjectionSuite, Named2x) {
 }
 
 TEST(InjectionSuite, NamedNotFound) {
-  std::string value = get_string<"jeff">{"none"};
+  std::string value = get_named<"jeff">{"none"};
 
   ASSERT_EQ(value, "none");
+}
+
+TEST(InjectionSuite, NamedInt) {
+  int value = get_named<"value">{}.get_int().value_or(-1);
+
+  ASSERT_EQ(value, 42);
 }
 
 // primitive tests
