@@ -11,13 +11,13 @@ project(jinject
   VERSION 1.0.0
 )
 
-option(TESTS "Enable unit tests" OFF)
-option(CHECKER "Enable static code analysing" OFF)
+option(JINJECT_TESTS "Enable unit tests" OFF)
+option(JINJECT_CHECKER "Enable static code analysing" OFF)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (CHECKER)
+if (JINJECT_CHECKER)
    set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,android-*,bugprone-*,clang-analyzer-*,concurrency-*,hicpp-*,misc-*,modernize-*,portability-*)
 endif()
 
@@ -50,7 +50,7 @@ target_include_directories(${PROJECT_NAME}
 
 enable_testing()
 
-if (TESTS)
+if (JINJECT_TESTS)
   add_subdirectory(tests)
 endif()
 
