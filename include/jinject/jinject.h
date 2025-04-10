@@ -11,6 +11,7 @@
 #include <expected>
 #include <iomanip>
 #include <map>
+#include <mutex>
 
 #include <cxxabi.h>
 
@@ -430,7 +431,30 @@ namespace jinject {
       } catch (std::runtime_error &e) {
         return std::unexpected{e.what()};
       }
-    }
+    };
+
+    template <typename T, typename ...Signature>
+      struct lazy {
+        T operator() () {
+          std::call_once(mFlag, 
+            [this]() {
+              mReference = get<Signature...>{};
+            });
+
+          return mReference;
+        }
+
+        private:
+          T mReference;
+          std::once_flag mFlag;
+        };
+
+      template <typename T, typename ...Signature>
+      struct lazy<std::unique_ptr<T>, Signature...> {
+        std::unique_ptr<T> operator() () {
+          return get<Signature...>{};
+        }
+      };
 }
 
 #define NAMED(ID, VALUE) \

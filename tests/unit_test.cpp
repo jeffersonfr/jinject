@@ -291,6 +291,7 @@ TEST(InjectionSuite, UndefinedInstatiation) {
 
     FAIL();
   } catch (...) {
+    SUCCEED();
   }
 }
 
@@ -300,6 +301,7 @@ TEST(InjectionSuite, PointerUndefinedInstatiation) {
 
     FAIL();
   } catch (...) {
+    SUCCEED();
   }
 }
 
@@ -309,6 +311,7 @@ TEST(InjectionSuite, SharedUndefinedInstatiation) {
 
     FAIL();
   } catch (...) {
+    SUCCEED();
   }
 }
 
@@ -318,6 +321,17 @@ TEST(InjectionSuite, UniqueUndefinedInstatiation) {
 
     FAIL();
   } catch (...) {
+    SUCCEED();
+  }
+}
+
+TEST(InjectionSuite, UniqueInstatiation) {
+  try {
+    std::unique_ptr<UniqueInstantiation> value = get{};
+
+    SUCCEED();
+  } catch (...) {
+    FAIL();
   }
 }
 
@@ -399,6 +413,43 @@ TEST(InjectionSuite, EmptyInjectWith) {
   auto value = inject_by<long>().value_or(21L);
 
   ASSERT_EQ(value, 21L);
+}
+
+// lazy
+TEST(InjectionSuite, LazyUndefinedInstantiation) {
+  try {
+    auto lazyObj = lazy<UndefinedInstantiation>();
+
+    lazyObj();
+
+    FAIL();
+  } catch (...) {
+    SUCCEED();
+  }
+}
+
+TEST(InjectionSuite, LazyUniqueInstantiation) {
+  try {
+    auto lazyObj = lazy<std::unique_ptr<UniqueInstantiation>>();
+
+    lazyObj();
+
+    SUCCEED();
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(InjectionSuite, LazySharedInstantiation) {
+  try {
+    auto lazyObj = lazy<std::shared_ptr<SharedInstantiation>>();
+
+    lazyObj();
+
+    SUCCEED();
+  } catch (...) {
+    FAIL();
+  }
 }
 
 int main(int argc, char* argv[]) {
