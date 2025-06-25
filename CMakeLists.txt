@@ -37,7 +37,7 @@ FetchContent_MakeAvailable(jmixin)
 add_library(${PROJECT_NAME} INTERFACE
   )
 
-  target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME}
     INTERFACE
       jmixin
 )
@@ -48,13 +48,15 @@ target_include_directories(${PROJECT_NAME}
     jmixin
   )
 
-enable_testing()
 
 if (JINJECT_TESTS)
+  enable_testing()
+  
   add_subdirectory(tests)
 endif()
 
 include(Doxygen)
+
 Doxygen(include docs)
 
 install(DIRECTORY include/${CMAKE_PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)

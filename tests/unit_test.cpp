@@ -452,10 +452,67 @@ TEST(InjectionSuite, LazySharedInstantiation) {
   }
 }
 
+struct Interface {
+  virtual int g() {
+    return -1;
+  }
+};
+
+struct Base : public Interface {
+  int f() {
+    return 42;
+  }
+
+  int g() {
+    return 1;
+  }
+};
+
+struct Derived : public Interface {
+  int g() {
+    return 2;
+  }
+};
+
+TEST(InjectionSuite, PointerByInstantiation) {
+  try {
+    Base *impl = by<Derived>();
+
+    ASSERT_EQ(impl->f(), 42);
+    ASSERT_EQ(impl->g(), 2);
+
+    delete impl;
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(InjectionSuite, SharedByInstantiation) {
+  try {
+    std::shared_ptr<Base> impl = by<Derived>();
+
+    ASSERT_EQ(impl->f(), 42);
+    ASSERT_EQ(impl->g(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(InjectionSuite, UniqueByInstantiation) {
+  try {
+    std::unique_ptr<Base> impl = by<Derived>();
+
+    ASSERT_EQ(impl->f(), 42);
+    ASSERT_EQ(impl->g(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
 int main(int argc, char* argv[]) {
-    ::testing::InitGoogleTest(&argc, argv);
+  ::testing::InitGoogleTest(&argc, argv);
 
-    ::testing::AddGlobalTestEnvironment(new Environment);
+  ::testing::AddGlobalTestEnvironment(new Environment);
 
-    return RUN_ALL_TESTS();
+  return RUN_ALL_TESTS();
 }

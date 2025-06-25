@@ -33,7 +33,7 @@ namespace jinject {
   template <typename T>
     concept NoPointer = !PointerConcept<T>;
     
-  enum instantiation_type {
+  enum instantiation_mode {
     UNKNOWN,
     SINGLE,
     FACTORY
@@ -194,10 +194,12 @@ namespace jinject {
 
     template <typename T, typename ...Signature>
     struct instantiation : public bind<T, Signature...> {
-      static inline instantiation_type type = UNKNOWN;
+      using type = std::remove_cvref_t<T>;
+
+      static inline instantiation_mode mode = UNKNOWN;
 
       instantiation(): bind<T, Signature...>() {
-        if (type != UNKNOWN) {
+        if (mode != UNKNOWN) {
           throw std::runtime_error("jinject::instantiation already defined");
         }
       }
@@ -213,7 +215,7 @@ namespace jinject {
             if (callback) {
               mCallback = callback;
 
-              instantiation<T, Signature...>::type = FACTORY;
+              instantiation<T, Signature...>::mode = FACTORY;
             }
           }
 
@@ -222,13 +224,13 @@ namespace jinject {
         }
 
         factory & operator = (std::function<T()> const &callback) {
-          if (instantiation<std::shared_ptr<T>, Signature...>::type != UNKNOWN) {
+          if (instantiation<std::shared_ptr<T>, Signature...>::mode != UNKNOWN) {
             throw std::runtime_error("jinject::unable to replace instantiation");
           }
 
           mCallback = callback;
 
-          instantiation<T, Signature...>::type = FACTORY;
+          instantiation<T, Signature...>::mode = FACTORY;
 
           return *this;
         }
@@ -315,7 +317,7 @@ namespace jinject {
           single(std::function<T*()> callback): instantiation<T*, Signature...>() {
             mInstance = callback();
 
-            instantiation<T*, Signature...>::type = SINGLE;
+            instantiation<T*, Signature...>::mode = SINGLE;
           }
 
         static T const * const get() {
@@ -342,7 +344,7 @@ namespace jinject {
             if (callback) {
               mInstance = callback();
 
-              instantiation<std::shared_ptr<T>, Signature...>::type = SINGLE;
+              instantiation<std::shared_ptr<T>, Signature...>::mode = SINGLE;
             }
           }
 
@@ -351,13 +353,13 @@ namespace jinject {
         }
 
         single & operator = (std::function<std::shared_ptr<T>()> const &callback) {
-          if (instantiation<std::shared_ptr<T>, Signature...>::type != UNKNOWN) {
+          if (instantiation<std::shared_ptr<T>, Signature...>::mode != UNKNOWN) {
             throw std::runtime_error("jinject::unable to replace instantiation");
           }
 
           mInstance = callback();
 
-          instantiation<std::shared_ptr<T>, Signature...>::type = SINGLE;
+          instantiation<std::shared_ptr<T>, Signature...>::mode = SINGLE;
 
           return *this;
         }
@@ -401,13 +403,13 @@ namespace jinject {
 
       template <typename T>
         operator T () const {
-          if (details::instantiation<T, Signature...>::type == SINGLE) {
+          if (details::instantiation<T, Signature...>::mode == SINGLE) {
             if constexpr(SharedPtrConcept<T>) {
               return details::single<T, Signature...>::get();
             } else {
               throw std::runtime_error("jinject::single instantiation must use shared smart pointer");
             }
-          } else if (details::instantiation<T, Signature...>::type == FACTORY) {
+          } else if (details::instantiation<T, Signature...>::mode == FACTORY) {
             return details::factory<T, Signature...>::get();
           }
 
@@ -433,28 +435,83 @@ namespace jinject {
       }
     };
 
-    template <typename T, typename ...Signature>
-      struct lazy {
-        T operator() () {
-          std::call_once(mFlag, 
-            [this]() {
-              mReference = get<Signature...>{};
-            });
+  template <typename T, typename ...Signature>
+    struct lazy {
+      T operator() () {
+        std::call_once(mFlag,
+          [this]() {
+            mReference = get<Signature...>{};
+          });
 
-          return mReference;
-        }
+        return mReference;
+      }
 
-        private:
-          T mReference;
-          std::once_flag mFlag;
-        };
+      private:
+        T mReference;
+        std::once_flag mFlag;
+    };
 
-      template <typename T, typename ...Signature>
-      struct lazy<std::unique_ptr<T>, Signature...> {
-        std::unique_ptr<T> operator() () {
-          return get<Signature...>{};
-        }
-      };
+  template <typename T, typename ...Signature>
+    struct lazy<std::unique_ptr<T>, Signature...> {
+      std::unique_ptr<T> operator() () {
+        return get<Signature...>{};
+      }
+    };
+
+
+
+
+
+
+
+
+
+
+
+  /*
+   * struct Base {
+   *   virtual void f() = 0;
+   * };
+   *
+   * struct Derived : public Base {
+   * };
+   *
+   * struct BaseImpl : public Base {
+   *   void f() {
+   *     std::cout << "Hello, world !" << std::endl;
+   *   }
+   * };
+   *
+   * Derived derived = by<BaseImpl>{}; // static_cast<Derived *>(new struct NewDerived : Derived, BaseImpl);
+   *
+   */
+  template <typename Base, typename ...Signature>
+    struct by {
+      by() = default;
+
+    template <typename T>
+      operator T () const {
+        static_assert(false, "unable to implement static class");
+      }
+
+    template <typename T>
+      operator T* () const {
+        struct internal_class : public Base, public T {};
+
+        return reinterpret_cast<T *>(static_cast<Base *>(new internal_class{}));
+      }
+
+    template <typename T>
+      operator std::shared_ptr<T> () const {
+        return std::shared_ptr<T>{static_cast<T*>(*this)};
+      }
+
+    template <typename T>
+      operator std::unique_ptr<T> () const {
+        return std::unique_ptr<T>{static_cast<T*>(*this)};
+      }
+
+  };
 }
 
 #define NAMED(ID, VALUE) \
@@ -470,5 +527,4 @@ namespace jinject {
   details::unique<T, ##__VA_ARGS__> {details::InternalType{}} = []() -> T*
 
 #define SINGLE(T, ...) \
-  details::single<T, ##__VA_ARGS__> { nullptr } = [=]() -> T 
-
+  details::single<T, ##__VA_ARGS__> { nullptr } = [=]() -> T
