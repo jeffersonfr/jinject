@@ -7,12 +7,12 @@
 using namespace jinject;
 
 struct DefaultConstructor {
-  DefaultConstructor() = default;
+    DefaultConstructor() = default;
 };
 
 struct NoDefaultConstructor {
-  NoDefaultConstructor(int i, std::string s) {
-  }
+    NoDefaultConstructor(int i, std::string s) {
+    }
 };
 
 struct SingleInstantiation {
@@ -34,121 +34,118 @@ struct SignatureType2 {
 };
 
 struct CustomInstantiation {
-  CustomInstantiation(int value): mValue{value} {
-  }
+    CustomInstantiation(int value): mValue{value} {
+    }
 
-  int mValue{0};
+    int mValue{0};
 };
 
 class Environment : public ::testing::Environment {
-  
-  public:
+public:
     ~Environment() override {
-      
     }
 
     void SetUp() override {
-      LoadModules();
+        LoadModules();
     }
 
     void TearDown() override {
-
     }
 
-    private:
-      void LoadNamedModule() {
+private:
+    void LoadNamedModule() {
         NAMED("url", "https://google.com");
         NAMED("url2", "https://google.com/{}/{}");
         NAMED("value", 42);
-      }
+    }
 
-      void LoadPrimitiveModule() {
+    void LoadPrimitiveModule() {
         FACTORY(int) {
-          return 42;
+            return 42;
         };
 
         FACTORY(int*) {
-          return new int{42};
+            return new int{42};
         };
 
         FACTORY(std::shared_ptr<int>) {
-          return std::make_shared<int>(42);
+            return std::make_shared<int>(42);
         };
 
         FACTORY(std::unique_ptr<int>) {
-          return std::make_unique<int>(42);
+            return std::make_unique<int>(42);
         };
-      }
+    }
 
-      void LoadDefaultConstructorModule() {
+    void LoadDefaultConstructorModule() {
         FACTORY(DefaultConstructor) {
-          return DefaultConstructor{};
+            return DefaultConstructor{};
         };
 
         FACTORY(DefaultConstructor*) {
-          return new DefaultConstructor{};
+            return new DefaultConstructor{};
         };
 
         FACTORY(std::shared_ptr<DefaultConstructor>) {
-          return std::make_shared<DefaultConstructor>();
+            return std::make_shared<DefaultConstructor>();
         };
 
         FACTORY(std::unique_ptr<DefaultConstructor>) {
-          return std::make_unique<DefaultConstructor>();
+            return std::make_unique<DefaultConstructor>();
         };
-      }
+    }
 
-      void LoadNoDefaultConstructorModule() {
+    void LoadNoDefaultConstructorModule() {
         FACTORY(NoDefaultConstructor) {
-          return NoDefaultConstructor{get{}, "Hello, world !"};
+            return NoDefaultConstructor{get{}, "Hello, world !"};
         };
 
         FACTORY(NoDefaultConstructor*) {
-          return new NoDefaultConstructor{get{}, "Hello, world !"};
+            return new NoDefaultConstructor{get{}, "Hello, world !"};
         };
 
         FACTORY(std::shared_ptr<NoDefaultConstructor>) {
-          return std::make_shared<NoDefaultConstructor>(get{}, "Hello, world !");
+            return std::make_shared<NoDefaultConstructor>(get{}, "Hello, world !");
         };
 
         FACTORY(std::unique_ptr<NoDefaultConstructor>) {
-          return std::make_unique<NoDefaultConstructor>(get{}, "Hello, world !");
+            return std::make_unique<NoDefaultConstructor>(get{}, "Hello, world !");
         };
-      }
+    }
 
-      void LoadSingleInstantiationModule() {
+    void LoadSingleInstantiationModule() {
         FACTORY(SingleInstantiation*) {
-          return new SingleInstantiation{};
+            return new SingleInstantiation{};
         };
 
         FACTORY(std::shared_ptr<SingleInstantiation>) {
-          return std::make_shared<SingleInstantiation>();
+            return std::make_shared<SingleInstantiation>();
         };
-      }
+    }
 
-      void LoadSharedInstantiationModule() {
+    void LoadSharedInstantiationModule() {
         SHARED(SharedInstantiation) {
-          return new SharedInstantiation{};
+            return new SharedInstantiation{};
         };
-      }
+    }
 
-      void LoadUniqueInstantiationModule() {
+    void LoadUniqueInstantiationModule() {
         UNIQUE(UniqueInstantiation) {
-          return new UniqueInstantiation{};
+            return new UniqueInstantiation{};
         };
-      }
+    }
 
-      void LoadCustomInstantiationModule() {
+    void LoadCustomInstantiationModule() {
         FACTORY(CustomInstantiation, SignatureType1) {
-          return CustomInstantiation{1};
+            return CustomInstantiation{1};
         };
 
         FACTORY(CustomInstantiation, SignatureType2) {
-          return CustomInstantiation{2};
+            return CustomInstantiation{2};
         };
-      }
+    }
 
-      void LoadModules() {
+    void LoadModules() {
         LoadNamedModule();
         LoadPrimitiveModule();
         LoadDefaultConstructorModule();
@@ -157,362 +154,362 @@ class Environment : public ::testing::Environment {
         LoadSharedInstantiationModule();
         LoadUniqueInstantiationModule();
         LoadCustomInstantiationModule();
-      }
-
+    }
 };
 
 // named tests
 TEST(InjectionSuite, Named) {
-  std::string value = get_named<"url">{};
+    std::string value = get_named<"url">{};
 
-  ASSERT_EQ(value, "https://google.com");
+    ASSERT_EQ(value, "https://google.com");
 }
 
 TEST(InjectionSuite, NamedFormat) {
-  std::string value = get_named<"url2">{}.format(42, 21);
+    std::string value = get_named<"url2">{}.format(42, 21);
 
-  ASSERT_EQ(value, "https://google.com/42/21");
+    ASSERT_EQ(value, "https://google.com/42/21");
 }
 
 TEST(InjectionSuite, Named2x) {
-  try {
-    NAMED("url", "https://google.com");
-    NAMED("url", "https://google.com");
+    try {
+        NAMED("url", "https://google.com");
+        NAMED("url", "https://google.com");
 
-    FAIL();
-  } catch (...) {
-  }
+        FAIL();
+    } catch (...) {
+    }
 }
 
 TEST(InjectionSuite, NamedNotFound) {
-  std::string value = get_named<"jeff">{"none"};
+    std::string value = get_named<"jeff">{"none"};
 
-  ASSERT_EQ(value, "none");
+    ASSERT_EQ(value, "none");
 }
 
 TEST(InjectionSuite, NamedInt) {
-  int value = get_named<"value">{}.get_int().value_or(-1);
+    int value = get_named<"value">{}.get_int().value_or(-1);
 
-  ASSERT_EQ(value, 42);
+    ASSERT_EQ(value, 42);
 }
 
 // primitive tests
 TEST(InjectionSuite, Primitive) {
-  int value = get{};
+    int value = get{};
 
-  ASSERT_EQ(value, 42);
+    ASSERT_EQ(value, 42);
 }
 
 TEST(InjectionSuite, PointerPrimitive) {
-  int *value = get{};
+    int *value = get{};
 
-  ASSERT_EQ(*value, 42);
+    ASSERT_EQ(*value, 42);
 }
 
 TEST(InjectionSuite, SharedPrimitive) {
-  std::shared_ptr<int> value = get{};
+    std::shared_ptr<int> value = get{};
 
-  ASSERT_EQ(*value, 42);
+    ASSERT_EQ(*value, 42);
 }
 
 TEST(InjectionSuite, UniquePrimitive) {
-  std::unique_ptr<int> value = get{};
+    std::unique_ptr<int> value = get{};
 
-  ASSERT_EQ(*value, 42);
+    ASSERT_EQ(*value, 42);
 }
 
 // default constructor
 TEST(InjectionSuite, DefaultConstructor) {
-  DefaultConstructor value = get{};
+    DefaultConstructor value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 TEST(InjectionSuite, PointerDefaultConstructor) {
-  DefaultConstructor *value = get{};
+    DefaultConstructor *value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 TEST(InjectionSuite, SharedDefaultConstructor) {
-  std::shared_ptr<DefaultConstructor> value = get{};
+    std::shared_ptr<DefaultConstructor> value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 TEST(InjectionSuite, UniqueDefaultConstructor) {
-  std::unique_ptr<DefaultConstructor> value = get{};
+    std::unique_ptr<DefaultConstructor> value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 // no NoDefault constructor
 TEST(InjectionSuite, NoDefaultConstructor) {
-  NoDefaultConstructor value = get{};
+    NoDefaultConstructor value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 TEST(InjectionSuite, PointerNoDefaultConstructor) {
-  NoDefaultConstructor *value = get{};
+    NoDefaultConstructor *value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 TEST(InjectionSuite, SharedNoDefaultConstructor) {
-  std::shared_ptr<NoDefaultConstructor> value = get{};
+    std::shared_ptr<NoDefaultConstructor> value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 TEST(InjectionSuite, UniqueNoDefaultConstructor) {
-  std::unique_ptr<NoDefaultConstructor> value = get{};
+    std::unique_ptr<NoDefaultConstructor> value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 // single instatiation
 TEST(InjectionSuite, SingleInstantiation) {
-  SingleInstantiation *value = get{};
+    SingleInstantiation *value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 TEST(InjectionSuite, SharedSingleInstantiation) {
-  std::shared_ptr<SingleInstantiation> value = get{};
+    std::shared_ptr<SingleInstantiation> value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 // undefined instatiation
 TEST(InjectionSuite, UndefinedInstatiation) {
-  try {
-    UndefinedInstantiation value = get{};
+    try {
+        UndefinedInstantiation value = get{};
 
-    FAIL();
-  } catch (...) {
-    SUCCEED();
-  }
+        FAIL();
+    } catch (...) {
+        SUCCEED();
+    }
 }
 
 TEST(InjectionSuite, PointerUndefinedInstatiation) {
-  try {
-    UndefinedInstantiation *value = get{};
+    try {
+        UndefinedInstantiation *value = get{};
 
-    FAIL();
-  } catch (...) {
-    SUCCEED();
-  }
+        FAIL();
+    } catch (...) {
+        SUCCEED();
+    }
 }
 
 TEST(InjectionSuite, SharedUndefinedInstatiation) {
-  try {
-    std::shared_ptr<UndefinedInstantiation> value = get{};
+    try {
+        std::shared_ptr<UndefinedInstantiation> value = get{};
 
-    FAIL();
-  } catch (...) {
-    SUCCEED();
-  }
+        FAIL();
+    } catch (...) {
+        SUCCEED();
+    }
 }
 
 TEST(InjectionSuite, UniqueUndefinedInstatiation) {
-  try {
-    std::unique_ptr<UndefinedInstantiation> value = get{};
+    try {
+        std::unique_ptr<UndefinedInstantiation> value = get{};
 
-    FAIL();
-  } catch (...) {
-    SUCCEED();
-  }
+        FAIL();
+    } catch (...) {
+        SUCCEED();
+    }
 }
 
 TEST(InjectionSuite, UniqueInstatiation) {
-  try {
-    std::unique_ptr<UniqueInstantiation> value = get{};
+    try {
+        std::unique_ptr<UniqueInstantiation> value = get{};
 
-    SUCCEED();
-  } catch (...) {
-    FAIL();
-  }
+        SUCCEED();
+    } catch (...) {
+        FAIL();
+    }
 }
 
 // shared instatiation
 TEST(InjectionSuite, SharedInstantiation) {
-  std::shared_ptr<SharedInstantiation> value = get{};
+    std::shared_ptr<SharedInstantiation> value = get{};
 
-  SUCCEED();
+    SUCCEED();
 }
 
 TEST(InjectionSuite, SharedInstantiationCompared) {
-  std::shared_ptr<SharedInstantiation> value1 = get{};
-  std::shared_ptr<SharedInstantiation> value2 = get{};
+    std::shared_ptr<SharedInstantiation> value1 = get{};
+    std::shared_ptr<SharedInstantiation> value2 = get{};
 
-  if (value1.get() != value2.get()) {
-    FAIL();
-  }
+    if (value1.get() != value2.get()) {
+        FAIL();
+    }
 
-  SUCCEED();
+    SUCCEED();
 }
 
 // custom instatiation
 TEST(InjectionSuite, CustomInstantiation) {
-  CustomInstantiation value1 = get<SignatureType1>{};
-  CustomInstantiation value2 = get<SignatureType2>{};
+    CustomInstantiation value1 = get<SignatureType1>{};
+    CustomInstantiation value2 = get<SignatureType2>{};
 
-  ASSERT_EQ(value1.mValue, 1);
-  ASSERT_EQ(value2.mValue, 2);
+    ASSERT_EQ(value1.mValue, 1);
+    ASSERT_EQ(value2.mValue, 2);
 }
 
 // mutiple binds
 TEST(InjectionSuite, MultipleBind) {
-  // multiple bind instantiation
-  struct MyType {};
+    // multiple bind instantiation
+    struct MyType {
+    };
 
-  MyType *ptr1 = new MyType{};
-  MyType *ptr2 = new MyType{};
-  
-  FACTORY(MyType*, SignatureType1) {
-    return ptr1;
-  };
+    MyType *ptr1 = new MyType{};
+    MyType *ptr2 = new MyType{};
 
-  FACTORY(MyType*, SignatureType2) {
-    return ptr2;
-  };
+    FACTORY(MyType*, SignatureType1) {
+        return ptr1;
+    };
 
-  // list all binds
-  std::vector<MyType*> binds = all{};
+    FACTORY(MyType*, SignatureType2) {
+        return ptr2;
+    };
 
-  if (binds.size() != 2) {
-    FAIL();
-  }
+    // list all binds
+    std::vector<MyType *> binds = all{};
 
-  ASSERT_EQ(binds[0], ptr1);
-  ASSERT_EQ(binds[1], ptr2);
+    if (binds.size() != 2) {
+        FAIL();
+    }
+
+    ASSERT_EQ(binds[0], ptr1);
+    ASSERT_EQ(binds[1], ptr2);
 }
 
 // auto return
 TEST(InjectionSuite, AutoReturn) {
-  decltype(auto) value = inject<int>();
+    decltype(auto) value = inject<int>();
 
-  ASSERT_EQ(value, 42);
+    ASSERT_EQ(value, 42);
 }
 
 TEST(InjectionSuite, CastingAutoReturn) {
-  long value = inject<int>();
+    long value = inject<int>();
 
-  ASSERT_EQ(value, 42L);
+    ASSERT_EQ(value, 42L);
 }
 
 // inject with
 TEST(InjectionSuite, InjectWith) {
-  auto value = inject_by<int>().value_or(21);
+    auto value = inject_by<int>().value_or(21);
 
-  ASSERT_EQ(value, 42);
+    ASSERT_EQ(value, 42);
 }
 
 TEST(InjectionSuite, EmptyInjectWith) {
-  auto value = inject_by<long>().value_or(21L);
+    auto value = inject_by<long>().value_or(21L);
 
-  ASSERT_EQ(value, 21L);
+    ASSERT_EQ(value, 21L);
 }
 
 // lazy
 TEST(InjectionSuite, LazyUndefinedInstantiation) {
-  try {
-    auto lazyObj = lazy<UndefinedInstantiation>();
+    try {
+        auto lazyObj = lazy<UndefinedInstantiation>();
 
-    lazyObj();
+        lazyObj();
 
-    FAIL();
-  } catch (...) {
-    SUCCEED();
-  }
+        FAIL();
+    } catch (...) {
+        SUCCEED();
+    }
 }
 
 TEST(InjectionSuite, LazyUniqueInstantiation) {
-  try {
-    auto lazyObj = lazy<std::unique_ptr<UniqueInstantiation>>();
+    try {
+        auto lazyObj = lazy<std::unique_ptr<UniqueInstantiation> >();
 
-    lazyObj();
+        lazyObj();
 
-    SUCCEED();
-  } catch (...) {
-    FAIL();
-  }
+        SUCCEED();
+    } catch (...) {
+        FAIL();
+    }
 }
 
 TEST(InjectionSuite, LazySharedInstantiation) {
-  try {
-    auto lazyObj = lazy<std::shared_ptr<SharedInstantiation>>();
+    try {
+        auto lazyObj = lazy<std::shared_ptr<SharedInstantiation> >();
 
-    lazyObj();
+        lazyObj();
 
-    SUCCEED();
-  } catch (...) {
-    FAIL();
-  }
+        SUCCEED();
+    } catch (...) {
+        FAIL();
+    }
 }
 
 struct Interface {
-  virtual int g() {
-    return -1;
-  }
+    virtual int g() {
+        return -1;
+    }
 };
 
 struct Base : public Interface {
-  int f() {
-    return 42;
-  }
+    int f() {
+        return 42;
+    }
 
-  int g() {
-    return 1;
-  }
+    int g() {
+        return 1;
+    }
 };
 
 struct Derived : public Interface {
-  int g() {
-    return 2;
-  }
+    int g() {
+        return 2;
+    }
 };
 
 TEST(InjectionSuite, PointerByInstantiation) {
-  try {
-    Base *impl = by<Derived>();
+    try {
+        Base *impl = by<Derived>();
 
-    ASSERT_EQ(impl->f(), 42);
-    ASSERT_EQ(impl->g(), 2);
+        ASSERT_EQ(impl->f(), 42);
+        ASSERT_EQ(impl->g(), 2);
 
-    delete impl;
-  } catch (...) {
-    FAIL();
-  }
+        delete impl;
+    } catch (...) {
+        FAIL();
+    }
 }
 
 TEST(InjectionSuite, SharedByInstantiation) {
-  try {
-    std::shared_ptr<Base> impl = by<Derived>();
+    try {
+        std::shared_ptr<Base> impl = by<Derived>();
 
-    ASSERT_EQ(impl->f(), 42);
-    ASSERT_EQ(impl->g(), 2);
-  } catch (...) {
-    FAIL();
-  }
+        ASSERT_EQ(impl->f(), 42);
+        ASSERT_EQ(impl->g(), 2);
+    } catch (...) {
+        FAIL();
+    }
 }
 
 TEST(InjectionSuite, UniqueByInstantiation) {
-  try {
-    std::unique_ptr<Base> impl = by<Derived>();
+    try {
+        std::unique_ptr<Base> impl = by<Derived>();
 
-    ASSERT_EQ(impl->f(), 42);
-    ASSERT_EQ(impl->g(), 2);
-  } catch (...) {
-    FAIL();
-  }
+        ASSERT_EQ(impl->f(), 42);
+        ASSERT_EQ(impl->g(), 2);
+    } catch (...) {
+        FAIL();
+    }
 }
 
-int main(int argc, char* argv[]) {
-  ::testing::InitGoogleTest(&argc, argv);
+int main(int argc, char *argv[]) {
+    ::testing::InitGoogleTest(&argc, argv);
 
-  ::testing::AddGlobalTestEnvironment(new Environment);
+    ::testing::AddGlobalTestEnvironment(new Environment);
 
-  return RUN_ALL_TESTS();
+    return RUN_ALL_TESTS();
 }
