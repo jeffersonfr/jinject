@@ -212,7 +212,7 @@ namespace jinject {
             factory(factory &&) = delete;
 
             template<typename... Args>
-            factory(std::function<T()> callback): instantiation<T, Signature...>() {
+            factory(std::function<T()> const &callback): instantiation<T, Signature...>() {
                 if (callback) {
                     mCallback = callback;
 
@@ -320,24 +320,32 @@ namespace jinject {
             single(single &&) = delete;
 
             template<typename... Args>
-            single(std::function<T*()> callback): instantiation<T *, Signature...>() {
-                mInstance = callback();
+            single(std::function<T *()> const &callback): instantiation<T *, Signature...>() {
+                if (callback) {
+                    mInstance = callback();
 
-                instantiation<T *, Signature...>::mode = SINGLE;
+                    instantiation<T *, Signature...>::mode = SINGLE;
+                }
             }
 
-            static T const *const get() {
+            static T * get() {
                 return mInstance;
             }
 
             single &operator =(std::function<T*()> const &callback) {
+                if (instantiation<std::shared_ptr<T>, Signature...>::mode != UNKNOWN) {
+                    throw std::runtime_error("jinject::unable to replace instantiation");
+                }
+
                 mInstance = callback();
+
+                instantiation<T *, Signature...>::mode = SINGLE;
 
                 return *this;
             }
 
         private:
-            static inline T *mInstance;
+            static inline T *mInstance = {};
         };
 
         template<typename T, typename... Signature>
@@ -414,6 +422,10 @@ namespace jinject {
                 if constexpr (SharedPtrConcept<T>) {
                     return details::single<T, Signature...>::get();
                 } else {
+                    if constexpr (!SharedPtrConcept<T> && !UniquePtrConcept<T> && PointerConcept<T>) {
+                        return details::single<T, Signature...>::get();
+                    }
+
                     throw std::runtime_error("jinject::single instantiation must use shared smart pointer");
                 }
             } else if (details::instantiation<T, Signature...>::mode == FACTORY) {

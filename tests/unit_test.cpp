@@ -114,11 +114,11 @@ private:
     }
 
     void LoadSingleInstantiationModule() {
-        FACTORY(SingleInstantiation*) {
+        SINGLE(SingleInstantiation*) {
             return new SingleInstantiation{};
         };
 
-        FACTORY(std::shared_ptr<SingleInstantiation>) {
+        SINGLE(std::shared_ptr<SingleInstantiation>) {
             return std::make_shared<SingleInstantiation>();
         };
     }
