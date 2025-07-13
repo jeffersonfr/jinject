@@ -28,10 +28,10 @@ namespace jinject {
     concept SmartPtrConcept = SharedPtrConcept<T> or UniquePtrConcept<T>;
 
     template<typename T>
-    concept PointerConcept = SmartPtrConcept<T> or std::is_pointer<T>::value;
+    concept PointerConcept = std::is_pointer<T>::value;
 
     template<typename T>
-    concept NoPointer = !PointerConcept<T>;
+    concept NoPointer = !SmartPtrConcept<T> && !PointerConcept<T>;
 
     enum instantiation_mode {
         UNKNOWN,
@@ -244,7 +244,7 @@ namespace jinject {
         };
 
         template<typename T, typename... Signature>
-            requires (!SmartPtrConcept<T>) && (!PointerConcept<T>)
+            requires (NoPointer<T>)
         struct shared {
             shared(shared const &) = delete;
 
@@ -276,7 +276,7 @@ namespace jinject {
 
 
         template<typename T, typename... Signature>
-            requires (!SmartPtrConcept<T>) && (!PointerConcept<T>)
+            requires (NoPointer<T>)
         struct unique {
             unique(unique const &) = delete;
 
@@ -422,7 +422,7 @@ namespace jinject {
                 if constexpr (SharedPtrConcept<T>) {
                     return details::single<T, Signature...>::get();
                 } else {
-                    if constexpr (!SharedPtrConcept<T> && !UniquePtrConcept<T> && PointerConcept<T>) {
+                    if constexpr (PointerConcept<T>) {
                         return details::single<T, Signature...>::get();
                     }
 
