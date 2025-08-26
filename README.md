@@ -1,10 +1,10 @@
 # Dependency injection library
 
-This library simplifies finding and instantiating any type of class or struct at compile time. Developers can use automatic or custom instantiation of entities. This short tutorial will show you some of the main features of the library.
+This library provides mechanisms for resolving and instantiating arbitrary classes or structs at compile time. It supports both automatic instantiation and user-defined construction strategies, enabling precise control over entity creation. The following tutorial outlines the core capabilities and primary usage patterns of the library.
 
 ## 1. no dependency injection
 
-In this first case, all instantiations are created by the developer. The developer needs to know how to instantiate, configure and manage the lifecycle of entities.
+In this initial scenario, all entity instantiations are explicitly defined by the developer. The developer is responsible for determining the appropriate construction mechanism, configuring the instances, and managing their complete lifecycle.
 
 ```
     struct Foo {
@@ -23,7 +23,7 @@ In this first case, all instantiations are created by the developer. The develop
 
 ## 2. no dependency injection using interfaces
 
-This example works with interfaces rather than concrete entities. In this case, the developer needs to instantiate an interface definition and, for that, he needs to know which class to instantiate and how to instantiate it. All this knowledge must be shared for all developers.
+This example operates on interfaces rather than concrete implementations. In this context, the developer is required to instantiate an interface contract by selecting an appropriate implementing class and determining the instantiation strategy. Such knowledge regarding the mapping between interfaces and their concrete implementations must be explicitly defined and consistently shared across the development team.
 
 ```
     struct IFoo {
@@ -42,7 +42,7 @@ This example works with interfaces rather than concrete entities. In this case, 
 
 ## 3. naive dependency injection
 
-Here we have a basic version of a system using some kind of dependency injection. In this example, we have a class that exposes its dependencies and exempts itself from the responsibility of instantiating them. Although simple, this code structure already allows the implementation of a test architecture in the system, however, we continue with the same problem reported in the previous example.
+This example illustrates a basic implementation of a system employing a rudimentary form of dependency injection. In this design, the class declares its dependencies explicitly and delegates the responsibility for their instantiation to an external mechanism. Despite its simplicity, this structure already enables the integration of a testing architecture within the system. Nevertheless, it still inherits the same limitation identified in the previous example.
 
 ```
     struct IFoo {
@@ -59,7 +59,7 @@ Here we have a basic version of a system using some kind of dependency injection
 
 ## 4. naive dependency injection with default instantiation
 
-In this example, we simply solve the previously reported problems. Now, let's imagine a large system, with many entities and use cases, sometimes making use of other use cases. Additions, removals, or any other restructuring of the code could affect many other parts of the system. As an example, we can cite the change in the instantiation order of any use case. A centralized entity could easily solve these problems and keep the public part of the code immutable.
+In this example, the previously identified issues are systematically addressed. Consider now a large-scale system comprising numerous entities and use cases, where certain use cases may depend on others. In such scenarios, additions, removals, or structural modifications within the codebase can have cascading effects throughout the system. For instance, altering the instantiation order of a single use case may impact multiple components. Introducing a centralized orchestration mechanism provides a robust solution to these challenges, ensuring consistency while preserving immutability in the system’s public interface.
 
 ```
     #include <iostream>
@@ -82,7 +82,7 @@ In this example, we simply solve the previously reported problems. Now, let's im
 
 ## 5. dependency injection with service locator
 
-In this example, we use a mechanism known as a service locator. The `get{}` method works as a 'service finder' and has the function of looking for and instantiating the necessary entities. However, this method works in a very simplified way where only concrete entities with default constructors could be automatically instantiated.
+In this example, a mechanism commonly referred to as a Service Locator is employed. The get{} method functions as a service retrieval interface, responsible for resolving and instantiating the required entities. However, its current implementation is highly constrained, as it supports only concrete types that expose a default constructor, thereby limiting its applicability in more complex scenarios.
 
 ```
     #include "jinject/jinject.h"
@@ -126,7 +126,7 @@ In this example, we use a mechanism known as a service locator. The `get{}` meth
 
 ## 6. dependency injection using single instance
 
-Certain types should have only one instanciation in the project or, at least, one instation for shared use over a period of time. For cases like that there is the type single{}. The lifetime of single instances is extended until all instances release the reference.
+Certain types are intended to have a single instantiation within the project, or at minimum, a single shared instance maintained over a defined period of time. For such cases, the single{} type is provided. The lifetime of these singleton instances is extended as long as active references exist, and the instance is released only once all references have been disposed.
 
 ```
     #include "jinject/jinject.h"
@@ -160,7 +160,7 @@ Certain types should have only one instanciation in the project or, at least, on
 
 ## 7. eagle injection
 
-In some situations a injection must be followed by a second convertion of type. The example below shows a value of type 'long' that need get a 'int' value, but the system raises a runtime exception, because the api search for a 'long' instantiation, instead of a 'int' that was defined previously.
+In certain scenarios, an injected value may require a subsequent type conversion. The example below demonstrates a value of type long that must be retrieved as an int. However, a runtime exception is raised because the API attempts to resolve a long instantiation rather than the previously defined int instance.
 
 ```
     #include "jinject/jinject.h"
