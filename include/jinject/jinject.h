@@ -16,6 +16,7 @@
 #include <cxxabi.h>
 
 #include "jmixin/jstring.h"
+#include "jmixin/jstringliteral.h"
 
 namespace jinject {
     template<typename T>
@@ -66,16 +67,6 @@ namespace jinject {
         }
     };
 
-    template<size_t N>
-    struct StringLiteral {
-    public:
-        constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
-
-        constexpr std::string to_string() const { return std::string{value, N - 1}; }
-
-        char value[N];
-    };
-
     struct named {
         named(std::string const &id, auto const &value) {
             if (sNames.find(id) != sNames.end()) {
@@ -96,7 +87,7 @@ namespace jinject {
         inline static std::map<std::string, jmixin::String> sNames;
     };
 
-    template<StringLiteral ID>
+    template<jmixin::StringLiteral ID>
     struct get_named {
         get_named(std::string const &value = "")
             : mDefault{value} {
