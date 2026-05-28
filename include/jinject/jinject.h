@@ -514,6 +514,19 @@ namespace jinject {
             return std::unique_ptr<T>{static_cast<T *>(*this)};
         }
     };
+
+		
+
+    template<typename... Params>
+    struct service {
+        service() = default;
+
+        template<typename T>
+        operator std::unique_ptr<T>() const {
+            return std::make_unique<T>(inject<Params>()...);
+        }
+    };
+
 }
 
 #define NAMED(ID, VALUE) \

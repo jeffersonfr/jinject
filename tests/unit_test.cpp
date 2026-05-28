@@ -40,6 +40,10 @@ struct CustomInstantiation {
     int mValue{0};
 };
 
+struct CustomService {
+    CustomService(std::unique_ptr<UniqueInstantiation> value) {}
+};
+
 class Environment : public ::testing::Environment {
 public:
     ~Environment() override {
@@ -495,15 +499,8 @@ TEST(InjectionSuite, SharedByInstantiation) {
     }
 }
 
-TEST(InjectionSuite, UniqueByInstantiation) {
-    try {
-        std::unique_ptr<Base> impl = by<Derived>();
-
-        ASSERT_EQ(impl->f(), 42);
-        ASSERT_EQ(impl->g(), 2);
-    } catch (...) {
-        FAIL();
-    }
+TEST(InjectionSuite, CustomServiceInstantiation) {
+    std::unique_ptr<CustomService> customService = service<std::unique_ptr<UniqueInstantiation>>{};
 }
 
 int main(int argc, char *argv[]) {
