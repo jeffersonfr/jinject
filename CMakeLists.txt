@@ -7,23 +7,14 @@ endif()
 project(jinject
   LANGUAGES CXX
   HOMEPAGE_URL https://github.com/jeffersonfr/jinject
-  DESCRIPTION "A dependency injection helper"
+  DESCRIPTION "A dependency injection library"
   VERSION 1.0.0
 )
-
-option(JINJECT_TESTS "Enable unit tests" OFF)
-option(JINJECT_CHECKER "Enable static code analysing" OFF)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (JINJECT_CHECKER)
-   set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,android-*,bugprone-*,clang-analyzer-*,concurrency-*,hicpp-*,misc-*,modernize-*,portability-*)
-endif()
-
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-
-find_package(Threads REQUIRED)
 
 include(FetchContent)
 
@@ -48,12 +39,7 @@ target_include_directories(${PROJECT_NAME}
     jmixin
   )
 
-
-if (JINJECT_TESTS)
-  enable_testing()
-  
-  add_subdirectory(tests)
-endif()
+add_subdirectory(tests)
 
 include(Doxygen)
 
