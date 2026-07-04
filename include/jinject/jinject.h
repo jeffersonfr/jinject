@@ -168,6 +168,40 @@ namespace jinject {
         jmixin::String mDefault;
     };
 
+    template<jmixin::StringLiteral TEXT>
+    struct typed {
+        typed() {
+            if (sNames.find(-1) != sNames.end()) {
+                throw std::runtime_error(std::string("Name") + " '" + TEXT.to_string() + "' already defined");
+            }
+
+            sNames[-1] = TEXT.to_string();
+        }
+
+        typed & add(std::size_t id, std::string_view value) {
+			sNames[id] = std::string{value};
+
+            return *this;
+        }
+
+        inline static std::map<int, jmixin::String> sNames;
+    };
+
+    template<jmixin::StringLiteral TEXT, int INDEX = -1>
+    struct get_typed {
+        get_typed() = default;
+
+        operator std::string() {
+            auto item = typed<TEXT>::sNames.find(INDEX);
+
+            if (item != typed<TEXT>::sNames.end()) {
+				return item->second;
+            }
+
+			return TEXT.to_string();
+        }
+    };
+
     template<typename... Signature>
     struct get;
 
@@ -515,8 +549,6 @@ namespace jinject {
         }
     };
 
-		
-
     template<typename... Params>
     struct service {
         service() = default;
@@ -526,11 +558,16 @@ namespace jinject {
             return std::make_unique<T>(inject<Params>()...);
         }
     };
-
 }
 
 #define NAMED(ID, VALUE) \
     named{ID, VALUE}
+
+#define TYPED(TEXT) \
+    typed<TEXT>{}
+
+#define _T(TEXT, ...) \
+    (std::string{get_typed<TEXT, ##__VA_ARGS__>{}})
 
 #define FACTORY(T, ...) \
     details::factory<T, ##__VA_ARGS__> { nullptr } = [=]() -> T

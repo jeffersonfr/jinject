@@ -44,6 +44,11 @@ struct CustomService {
     CustomService(std::unique_ptr<UniqueInstantiation> value) {}
 };
 
+enum pais {
+    PT_br,
+    ES_es,
+};
+
 class Environment : public ::testing::Environment {
 public:
     ~Environment() override {
@@ -61,6 +66,12 @@ private:
         NAMED("url", "https://google.com");
         NAMED("url2", "https://google.com/{}/{}");
         NAMED("value", 42);
+    }
+
+    void LoadTypedModule() {
+        TYPED("Hello, world !")
+            .add(PT_br, "Oi, mundo !")
+            .add(ES_es, "Holla, mundo !");
     }
 
     void LoadPrimitiveModule() {
@@ -151,6 +162,7 @@ private:
 
     void LoadModules() {
         LoadNamedModule();
+        LoadTypedModule();
         LoadPrimitiveModule();
         LoadDefaultConstructorModule();
         LoadNoDefaultConstructorModule();
@@ -194,6 +206,13 @@ TEST(InjectionSuite, NamedInt) {
     int value = get_named<"value">{}.get_int().value_or(-1);
 
     ASSERT_EQ(value, 42);
+}
+
+// typed tests
+TEST(InjectionSuite, Typed) {
+    ASSERT_EQ(_T("Hello, world !"), "Hello, world !");
+    ASSERT_EQ(_T("Hello, world !", PT_br), "Oi, mundo !");
+    ASSERT_EQ(_T("Hello, world !", ES_es), "Holla, mundo !");
 }
 
 // primitive tests
