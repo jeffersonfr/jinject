@@ -1,5 +1,3 @@
-cmake_minimum_required (VERSION 3.0)
-
 set(gtest_force_shared_crt ON)
 set(INSTALL_GTEST OFF)
 set(INSTALL_GMOCK OFF)
